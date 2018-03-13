@@ -1,11 +1,58 @@
 --- 
 title: "Case studies with mrgsolve: PBPK and QSP model implementation and utilization in R"
+date: ""
+author: ""
 output:
   github_document:
-    toc: true
-  html_document: 
-    theme: united
+    toc: false
+  html_document:
+    toc: false
 ---
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(mrgsolve)
+library(tidyverse)
+knitr::opts_chunk$set(fig.path = "img/README-")
+mod <- mread("rifampicin_midazolam", "models") %>% param(WT = 90)
+
+
+rif <- ev(amt = 75, ii = 24, addl = 6, cmt = 1)
+mid <- ev(amt = 3, cmt = 2)
+
+comb <- ev_seq(rif, wait = -12, mid)
+mono <- filter(as.data.frame(comb), cmt==2) %>% as.ev
+
+out1 <- 
+  mrgsim(mod, events = comb, delta = 0.1, end = 240) %>%
+  mutate(tx = 2)
+
+out2 <- 
+  mrgsim(mod, events = mono, delta = 0.1, end = 240) %>% 
+  mutate(tx = 1)
+
+sims <- bind_rows(out1,out2) %>% 
+  mutate(tx = factor(
+    tx, labels = c("No Rifampicin", "Rifampicin Pretreatment x7d")
+  ))
+
+
+simddi <- filter(sims,time >= 156 & time <= 166) %>%
+  mutate(time = time - min(time))
+
+ggplot(simddi, aes(time,Cmidazolam, col = factor(tx))) + 
+  geom_line(lwd = 1.25)  + 
+  scale_color_brewer(palette="Set2", name = "") +
+  xlab("Time after dose (hours)") + 
+  theme_bw() + theme(legend.position = "top") +
+  scale_x_continuous(breaks=seq(0,10,2)) +
+  scale_y_continuous(trans = "log10", 
+                     name = "Midazolam concentration (ng/mL)",
+                     breaks = 10^seq(-4,4), 
+                     limits = c(0.1, 10))
+
+```
+
+
 
 # Location
 
@@ -35,3 +82,5 @@ colorectal cancer predicted using a computational model__
       Gadkar K, Ramanujan S.  NPJ Syst Biol Appl. 2017 Jun 2;3:14. 
       PubMed PMID: 28649441
     - https://www.ncbi.nlm.nih.gov/pubmed/28649441
+
+
