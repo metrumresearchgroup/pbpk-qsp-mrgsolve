@@ -17,7 +17,7 @@ knitr::opts_chunk$set(fig.path = "docs/img/README-", message = FALSE, warning = 
 
 ```{r, echo = FALSE, message = FALSE, warning = FALSE}
 
-mod <- mread("rifampicin_midazolam", "models") %>% param(WT = 90)
+mod <- mread("rifampicin_midazolam", "docs/models") %>% param(WT = 90)
 
 
 rif <- ev(amt = 75, ii = 24, addl = 6, cmt = 1)
