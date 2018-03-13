@@ -1,7 +1,7 @@
 Case studies with mrgsolve: PBPK and QSP model implementation and utilization in R
 ================
 
-![](README_files/figure-markdown_github/unnamed-chunk-1-1.png)
+![](docs/img/README-unnamed-chunk-1-1.png)
 
 Location
 ========

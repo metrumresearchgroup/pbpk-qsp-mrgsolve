@@ -5,14 +5,18 @@ author: ""
 output:
   github_document:
     toc: false
-  html_document:
-    toc: false
 ---
 
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
+```{r global, message = FALSE, echo = FALSE, warning = FALSE}
 library(mrgsolve)
 library(tidyverse)
-knitr::opts_chunk$set(fig.path = "img/README-")
+knitr::opts_chunk$set(fig.path = "docs/img/README-", message = FALSE, warning = FALSE)
+```
+
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
 mod <- mread("rifampicin_midazolam", "models") %>% param(WT = 90)
 
 
