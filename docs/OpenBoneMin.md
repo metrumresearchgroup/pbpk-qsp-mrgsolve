@@ -109,7 +109,11 @@ Generate the dosing regimens
 
 ``` r
 month <- 24*28
+regi <- function(x) factor(x,labels = c("60q6M", "14q6M", "30q3M", "210q6M"))
+xscale <- scale_x_continuous(breaks = c(0,3,6,12,18,24,36,48), limits = c(0,48))
+```
 
+``` r
 e1 <- ev(amt = 60, ii = 6*month, addl = 7)
 ```
 
@@ -181,10 +185,10 @@ ggplot(out) +
   facet_grid(~ID) + geom_hline(yintercept = 100, lty = 2) +
   scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) + 
   theme_bw() + theme(legend.position = "top") +
-   geom_vline(xintercept = c(24,36), lty = 3)
+   geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-16-1.png)
+![](img/OpenBoneMin-unnamed-chunk-17-1.png)
 
 Publication figure 4: BSAP vs time
 ----------------------------------
@@ -195,10 +199,10 @@ ggplot(out) +
   facet_grid(~ID) + geom_hline(yintercept = 100, lty = 2) +
   scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) +
   theme_bw() + theme(legend.position = "top") + 
-  geom_vline(xintercept = c(24,36), lty = 3)
+  geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-17-1.png)
+![](img/OpenBoneMin-unnamed-chunk-18-1.png)
 
 Publication figure 5: LS BMD vs time
 ------------------------------------
@@ -208,10 +212,10 @@ ggplot(out) +
   geom_line(aes(x = time/(month), y = BMDlsDENchange, col = factor(ID)), lwd = 1) + 
   facet_grid(~ID) + 
   theme_bw() + theme(legend.position = "top") + 
-  geom_vline(xintercept = c(24,36), lty = 3)
+  geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-18-1.png)
+![](img/OpenBoneMin-unnamed-chunk-19-1.png)
 
 Publication figure 6: TGF beta vs time
 --------------------------------------
@@ -227,8 +231,8 @@ ggplot(out) +
   geom_line(aes(x = time/(month), y = TGF, col = factor(ID)), lwd = 1) + 
   facet_grid(~ID) + 
   theme_bw() + theme(legend.position = "top") + 
-  geom_vline(xintercept = c(24,36), lty = 3) + 
-  scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225))
+  geom_vline(xintercept = c(24,36), lty = 3) + xscale +
+  scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225)) 
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-19-1.png)
+![](img/OpenBoneMin-unnamed-chunk-20-1.png)
