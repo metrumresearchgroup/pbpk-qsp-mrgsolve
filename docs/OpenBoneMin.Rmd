@@ -107,8 +107,12 @@ e4 <- mutate(e1, amt = 210, addl = 3)
 e4
 ```
 
+
+Create one single data set from which to simulate
 ```{r}
 data <- as_data_set(e1,e2,e3,e4)
+
+data
 ```
 
 ```{r}

@@ -140,9 +140,21 @@ e4
     .   time cmt amt   ii addl evid
     . 1    0   1 210 4032    3    1
 
+Create one single data set from which to simulate
+
 ``` r
 data <- as_data_set(e1,e2,e3,e4)
+
+data
 ```
+
+    .   ID  time cmt evid amt   ii addl
+    . 1  1     0   1    1  60 4032    7
+    . 2  2     0   1    1  14 4032    3
+    . 3  2 16128   1    1  60 4032    3
+    . 4  3     0   1    1  30 2016    7
+    . 5  3 24192   1    1  60 4032    1
+    . 6  4     0   1    1 210 4032    3
 
 ``` r
 out <- mrgsim_df(mod, data = data, end = 48*month, delta = 0.5)
