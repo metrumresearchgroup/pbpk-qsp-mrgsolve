@@ -1,0 +1,69 @@
+---
+title: A multiscale systems model of bone health and mineral homeostasis
+author: "Metrum Research Group, LLC"
+date: ""
+output: 
+  github_document
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(comment = '.', warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.path = "img/OpenBoneMin-")
+```
+
+# Background and Motivation
+
+The model was originally developed to describe the bone marker changes associated with denosumab administration from a then ongoing clinical trial. Associated changes in serum calcium and PTH were also considered of interest at the time and so justified the development of a 'systems' model that included bone remodeling and bone mineral (calcium and phosphate) homeostatic mechanisms. Other therapeutics (e.g., teriparatide) and disease states (kidney failure, parathyroid-related abnormalities) were also considered at the time to further inform the parameterization and estimation of the model (Peterson and Riggs, Bone 2010).
+
+# Install from GitHub
+
+```{r,eval = FALSE}
+remotes::install_github("metrumresearchgroup/OpenBoneMin")
+```
+
+```{r}
+library(OpenBoneMin)
+library(dplyr)
+```
+
+
+# Load the Bone / Mineral model
+```{r}
+mod <- BoneMin()
+```
+
+
+# An example simulation of teriparatide administration
+
+- We'll give either 20 or 40 micrograms SQ daily for 
+```{r}
+out <- sim_teri(dose = c(20,40), dur = 9)
+
+out
+```
+
+PTH profiles for the 20 and 40 microgram doses
+
+```{r}
+plot(out, PTHpm ~ time|ID, scales = "same")
+```
+
+
+Calcium profiles for the 20 and 40 microgram doses
+
+```{r}
+plot(out, CaC~time)
+```
+
+
+# Denosumab administration
+```{r}
+out <- sim_denos(dose = c(30,60,210))
+
+plot(out, DENCP ~.,  scales = list(y=list(log = TRUE)), 
+     ylim = c(1E-4, 10E5))
+```
+```{r}
+plot(out, BMDlsDENchange ~ .)
+```
+
