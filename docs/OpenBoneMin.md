@@ -181,3 +181,13 @@ ggplot(out) +
 ```
 
 ![](img/OpenBoneMin-unnamed-chunk-17-1.png)
+
+``` r
+ggplot(out) + 
+  geom_line(aes(x = time/(month), y = BMDlsDENchange, col = factor(ID)), lwd = 1) + 
+  facet_grid(~ID) + 
+  theme_bw() + theme(legend.position = "top") + 
+  geom_vline(xintercept = c(24,36), lty = 3)
+```
+
+![](img/OpenBoneMin-unnamed-chunk-18-1.png)
