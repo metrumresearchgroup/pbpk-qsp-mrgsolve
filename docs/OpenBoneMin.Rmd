@@ -133,7 +133,7 @@ ggplot(out) +
    geom_vline(xintercept = c(24,36), lty = 3)
 ```
 
-## Publication figure 3: BSAP vs time
+## Publication figure 4: BSAP vs time
 ```{r}
 ggplot(out) + 
   geom_line(aes(x = time/(month), y = OBchange, col = factor(ID)), lwd = 1) + 
@@ -143,11 +143,29 @@ ggplot(out) +
   geom_vline(xintercept = c(24,36), lty = 3)
 ```
 
-## Publication figure 3: LS BMD vs time
+## Publication figure 5: LS BMD vs time
 ```{r}
 ggplot(out) + 
   geom_line(aes(x = time/(month), y = BMDlsDENchange, col = factor(ID)), lwd = 1) + 
   facet_grid(~ID) + 
   theme_bw() + theme(legend.position = "top") + 
   geom_vline(xintercept = c(24,36), lty = 3)
+```
+
+
+## Publication figure 6: TGF beta vs time
+
+```{r}
+out <- 
+  out %>%
+  group_by(ID) %>%
+  mutate(TGF = 100*TGFBact/first(TGFBact)) %>% 
+  ungroup
+
+ggplot(out) + 
+  geom_line(aes(x = time/(month), y = TGF, col = factor(ID)), lwd = 1) + 
+  facet_grid(~ID) + 
+  theme_bw() + theme(legend.position = "top") + 
+  geom_vline(xintercept = c(24,36), lty = 3) + 
+  scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225))
 ```

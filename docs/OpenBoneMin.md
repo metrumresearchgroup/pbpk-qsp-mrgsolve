@@ -10,8 +10,9 @@ Metrum Research Group, LLC
 -   [Riggs and Peterson 2012](#riggs-and-peterson-2012)
     -   [Generate the dosing regimens](#generate-the-dosing-regimens)
     -   [Publication figure 3: CTx vs time](#publication-figure-3-ctx-vs-time)
-    -   [Publication figure 3: BSAP vs time](#publication-figure-3-bsap-vs-time)
-    -   [Publication figure 3: LS BMD vs time](#publication-figure-3-ls-bmd-vs-time)
+    -   [Publication figure 4: BSAP vs time](#publication-figure-4-bsap-vs-time)
+    -   [Publication figure 5: LS BMD vs time](#publication-figure-5-ls-bmd-vs-time)
+    -   [Publication figure 6: TGF beta vs time](#publication-figure-6-tgf-beta-vs-time)
 
 Background and Motivation
 =========================
@@ -185,7 +186,7 @@ ggplot(out) +
 
 ![](img/OpenBoneMin-unnamed-chunk-16-1.png)
 
-Publication figure 3: BSAP vs time
+Publication figure 4: BSAP vs time
 ----------------------------------
 
 ``` r
@@ -199,7 +200,7 @@ ggplot(out) +
 
 ![](img/OpenBoneMin-unnamed-chunk-17-1.png)
 
-Publication figure 3: LS BMD vs time
+Publication figure 5: LS BMD vs time
 ------------------------------------
 
 ``` r
@@ -211,3 +212,23 @@ ggplot(out) +
 ```
 
 ![](img/OpenBoneMin-unnamed-chunk-18-1.png)
+
+Publication figure 6: TGF beta vs time
+--------------------------------------
+
+``` r
+out <- 
+  out %>%
+  group_by(ID) %>%
+  mutate(TGF = 100*TGFBact/first(TGFBact)) %>% 
+  ungroup
+
+ggplot(out) + 
+  geom_line(aes(x = time/(month), y = TGF, col = factor(ID)), lwd = 1) + 
+  facet_grid(~ID) + 
+  theme_bw() + theme(legend.position = "top") + 
+  geom_vline(xintercept = c(24,36), lty = 3) + 
+  scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225))
+```
+
+![](img/OpenBoneMin-unnamed-chunk-19-1.png)
