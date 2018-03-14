@@ -88,10 +88,10 @@ plot(out, BMDlsDENchange ~ .)
 Riggs and Peterson 2012
 =======================
 
+Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a Multiscale Systems Pharmacology Model
+
 Generate the dosing regimens
 ----------------------------
-
-Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a Multiscale Systems Pharmacology Model
 
 **60 mg every 6 months x 8**
 
@@ -129,7 +129,7 @@ e3
     . 1     0   1  30 2016    7    1
     . 2 24192   1  60 4032    1    1
 
-210 mg every 6 months x4 then DC
+**210 mg every 6 months x4 then DC**
 
 ``` r
 e4 <- mutate(e1, amt = 210, addl = 3)
