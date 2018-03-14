@@ -16,7 +16,7 @@ remotes::install_github("metrumresearchgroup/OpenBoneMin")
 
 ``` r
 library(OpenBoneMin)
-library(dplyr)
+library(tidyverse)
 ```
 
 Load the Bone / Mineral model
@@ -84,3 +84,88 @@ plot(out, BMDlsDENchange ~ .)
 ```
 
 ![](img/OpenBoneMin-unnamed-chunk-9-1.png)
+
+Riggs and Peterson 2012
+=======================
+
+Generate the dosing regimens
+----------------------------
+
+Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a Multiscale Systems Pharmacology Model
+
+**60 mg every 6 months x 8**
+
+``` r
+month <- 24*28
+
+e1 <- ev(amt = 60, ii = 6*month, addl = 7)
+```
+
+**14 mg every 6 months x4, then 60 mg every 6 months x4**
+
+``` r
+e2 <- 
+  mutate(e1, amt = 14, addl = 3) %then% 
+  mutate(e1, addl = 3)
+e2
+```
+
+    . Events:
+    .    time cmt amt   ii addl evid
+    . 1     0   1  14 4032    3    1
+    . 2 16128   1  60 4032    3    1
+
+**30 mg every 3 months for 8 doses and changed to 60 mg Q6M starting on month 36**
+
+``` r
+e3a <- ev(amt = 30, ii = 3*month, addl = 7)
+e3b <- mutate(e1, addl = 1)
+e3 <- seq(e3a, wait = 12*month, e3b)
+e3
+```
+
+    . Events:
+    .    time cmt amt   ii addl evid
+    . 1     0   1  30 2016    7    1
+    . 2 24192   1  60 4032    1    1
+
+210 mg every 6 months x4 then DC
+
+``` r
+e4 <- mutate(e1, amt = 210, addl = 3)
+e4
+```
+
+    . Events:
+    .   time cmt amt   ii addl evid
+    . 1    0   1 210 4032    3    1
+
+``` r
+data <- as_data_set(e1,e2,e3,e4)
+```
+
+``` r
+out <- mrgsim_df(mod, data = data, end = 48*month, delta = 0.5)
+```
+
+``` r
+ggplot(out) + 
+  geom_line(aes(x = time/month, y = OCchange, col = factor(ID)), lwd = 1) + 
+  facet_grid(~ID) + geom_hline(yintercept = 100, lty = 2) +
+  scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) + 
+  theme_bw() + theme(legend.position = "top") +
+   geom_vline(xintercept = c(24,36), lty = 3)
+```
+
+![](img/OpenBoneMin-unnamed-chunk-16-1.png)
+
+``` r
+ggplot(out) + 
+  geom_line(aes(x = time/(month), y = OBchange, col = factor(ID)), lwd = 1) + 
+  facet_grid(~ID) + geom_hline(yintercept = 100, lty = 2) +
+  scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) +
+  theme_bw() + theme(legend.position = "top") + 
+  geom_vline(xintercept = c(24,36), lty = 3)
+```
+
+![](img/OpenBoneMin-unnamed-chunk-17-1.png)
