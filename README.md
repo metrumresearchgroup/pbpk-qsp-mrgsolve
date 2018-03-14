@@ -21,3 +21,6 @@ Reading List
 -   **Clinical responses to ERK inhibition in BRAF(V600E)-mutant colorectal cancer predicted using a computational model**
     -   Kirouac DC, Schaefer G, Chan J, Merchant M, Orr C, Huang SA, Moffat J, Liu L, Gadkar K, Ramanujan S. NPJ Syst Biol Appl. 2017 Jun 2;3:14. PubMed PMID: 28649441
     -   <https://www.ncbi.nlm.nih.gov/pubmed/28649441>
+-   **Predicting nonlinear changes in bone mineral density over time using a multiscale systems pharmacology model**
+    -   Peterson MC, Riggs MM. CPT Pharmacometrics Syst Pharmacol. 2012 Nov 14;1:e14. PMID: 23835796
+    -   <https://www.ncbi.nlm.nih.gov/pubmed/23835796>
