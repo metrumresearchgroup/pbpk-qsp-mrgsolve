@@ -87,4 +87,9 @@ colorectal cancer predicted using a computational model__
       PubMed PMID: 28649441
     - https://www.ncbi.nlm.nih.gov/pubmed/28649441
 
-
+- __Predicting nonlinear changes in bone mineral density
+over time using a multiscale systems pharmacology model__
+    -  Peterson MC, Riggs MM. CPT Pharmacometrics Syst
+       Pharmacol. 2012 Nov 14;1:e14. 
+       PMID: 23835796
+    - https://www.ncbi.nlm.nih.gov/pubmed/23835796
