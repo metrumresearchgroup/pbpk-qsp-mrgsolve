@@ -3,7 +3,8 @@ title: A multiscale systems model of bone health and mineral homeostasis
 author: "Metrum Research Group, LLC"
 date: ""
 output: 
-  github_document
+  github_document:
+    toc: true
 ---
 
 ```{r, echo = FALSE}
@@ -33,7 +34,7 @@ mod <- BoneMin()
 ```
 
 
-# An example simulation of teriparatide administration
+# Teriparatide example
 
 - We'll give either 20 or 40 micrograms SQ daily for 
 ```{r}
@@ -56,7 +57,7 @@ plot(out, CaC~time)
 ```
 
 
-# Denosumab administration
+# Denosumab example
 ```{r}
 out <- sim_denos(dose = c(30,60,210))
 
@@ -122,7 +123,7 @@ data
 out <- mrgsim_df(mod, data = data, end = 48*month, delta = 0.5)
 ```
 
-
+## Publication figure 3: CTx vs time
 ```{r}
 ggplot(out) + 
   geom_line(aes(x = time/month, y = OCchange, col = factor(ID)), lwd = 1) + 
@@ -132,7 +133,7 @@ ggplot(out) +
    geom_vline(xintercept = c(24,36), lty = 3)
 ```
 
-
+## Publication figure 3: BSAP vs time
 ```{r}
 ggplot(out) + 
   geom_line(aes(x = time/(month), y = OBchange, col = factor(ID)), lwd = 1) + 
@@ -142,6 +143,7 @@ ggplot(out) +
   geom_vline(xintercept = c(24,36), lty = 3)
 ```
 
+## Publication figure 3: LS BMD vs time
 ```{r}
 ggplot(out) + 
   geom_line(aes(x = time/(month), y = BMDlsDENchange, col = factor(ID)), lwd = 1) + 

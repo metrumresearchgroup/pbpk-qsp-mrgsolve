@@ -2,6 +2,17 @@ A multiscale systems model of bone health and mineral homeostasis
 ================
 Metrum Research Group, LLC
 
+-   [Background and Motivation](#background-and-motivation)
+-   [Install from GitHub](#install-from-github)
+-   [Load the Bone / Mineral model](#load-the-bone-mineral-model)
+-   [Teriparatide example](#teriparatide-example)
+-   [Denosumab example](#denosumab-example)
+-   [Riggs and Peterson 2012](#riggs-and-peterson-2012)
+    -   [Generate the dosing regimens](#generate-the-dosing-regimens)
+    -   [Publication figure 3: CTx vs time](#publication-figure-3-ctx-vs-time)
+    -   [Publication figure 3: BSAP vs time](#publication-figure-3-bsap-vs-time)
+    -   [Publication figure 3: LS BMD vs time](#publication-figure-3-ls-bmd-vs-time)
+
 Background and Motivation
 =========================
 
@@ -26,8 +37,8 @@ Load the Bone / Mineral model
 mod <- BoneMin()
 ```
 
-An example simulation of teriparatide administration
-====================================================
+Teriparatide example
+====================
 
 -   We'll give either 20 or 40 micrograms SQ daily for
 
@@ -67,8 +78,8 @@ plot(out, CaC~time)
 
 ![](img/OpenBoneMin-unnamed-chunk-7-1.png)
 
-Denosumab administration
-========================
+Denosumab example
+=================
 
 ``` r
 out <- sim_denos(dose = c(30,60,210))
@@ -160,6 +171,9 @@ data
 out <- mrgsim_df(mod, data = data, end = 48*month, delta = 0.5)
 ```
 
+Publication figure 3: CTx vs time
+---------------------------------
+
 ``` r
 ggplot(out) + 
   geom_line(aes(x = time/month, y = OCchange, col = factor(ID)), lwd = 1) + 
@@ -171,6 +185,9 @@ ggplot(out) +
 
 ![](img/OpenBoneMin-unnamed-chunk-16-1.png)
 
+Publication figure 3: BSAP vs time
+----------------------------------
+
 ``` r
 ggplot(out) + 
   geom_line(aes(x = time/(month), y = OBchange, col = factor(ID)), lwd = 1) + 
@@ -181,6 +198,9 @@ ggplot(out) +
 ```
 
 ![](img/OpenBoneMin-unnamed-chunk-17-1.png)
+
+Publication figure 3: LS BMD vs time
+------------------------------------
 
 ``` r
 ggplot(out) + 
