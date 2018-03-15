@@ -43,7 +43,7 @@ Teriparatide example
 
 -   Teriparatide is a recombinant parathyroid (PTH) hormone, containing only the first 84 amino acid residues
 -   Teriparatide doses are administered subcutaneously and are absorbed into the PTH compartment; so teriparatide is considered equivalent to PTH
--   We'll give either 20 or 40 micrograms SQ daily for
+-   We'll give either 20 or 40 micrograms SQ daily for 10 doses
 
 ``` r
 out <- sim_teri(dose = c(20,40), dur = 9)
@@ -88,29 +88,39 @@ Denosumab example
 -   The labeled dose for treatment of osteoporosis is 60 mg SQ every 6 months
 
 ``` r
-out <- sim_denos(dose = c(30,60,210))
-
-plot(out, DENCP ~.,  scales = list(y=list(log = TRUE)), 
-     ylim = c(1E-4, 10E5))
+out <- sim_denos(dose = c(14,30,60,210))
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-8-1.png)
+Plot the denosumab concentration versus time
+
+``` r
+plot(out, DENCP ~.,  scales = list(y=list(log = TRUE)), ylim = c(1E-4, 10E5))
+```
+
+![](img/OpenBoneMin-unnamed-chunk-9-1.png)
+
+Plot the percent change in lumbar spine BMD versus time
 
 ``` r
 plot(out, BMDlsDENchange ~ .)
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-9-1.png)
+![](img/OpenBoneMin-unnamed-chunk-10-1.png)
 
 Riggs and Peterson 2012
 =======================
 
 **Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a Multiscale Systems Pharmacology Model**
 
--   Bone is constantly being remodeled, constantly turning over. This remodeling process consists of breaking down old bone and building up new bone.
-    -   *Osteoclasts* are cells that function to disassemble bone (resorption) and *osteoblasts* are cells that function to synthesize or build new bone.
-    -   One therapeutic strategy for osteoporosis (porous bone) is to inhibit osteoclast activity and thus inhibit the bone resorption activity.
-    -   **Denosumab** decreases osteoclast activity by preventing maturation of pre-osteoclasts into fully-functional osteoclast cells.
+Peterson MC, Riggs MM. CPT Pharmacometrics Syst Pharmacol. 2012 Nov 14;1:e14. doi: 10.1038/psp.2012.15. PubMed PMID: 23835796; PubMed Central PMCID: PMC3600731.
+
+<https://www.ncbi.nlm.nih.gov/pubmed/23835796>
+<https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3600731>
+
+-   Bone is constantly being remodeled, constantly turning over. This remodeling process consists of breaking down old bone and building up new bone
+    -   *Osteoclasts* are cells that function to disassemble bone (resorption) and *osteoblasts* are cells that function to synthesize or build new bone
+    -   One therapeutic strategy for osteoporosis (porous bone) is to inhibit osteoclast activity and thus inhibit the bone resorption activity
+    -   **Denosumab** decreases osteoclast activity by preventing maturation of pre-osteoclasts into fully-functional osteoclast cells
 -   The goal of the modeling was to predict nonlinear changes in lumbar spine (LS) bone mineral density (BMD) over 48 months of denosumab treatment under different dosing regimens.
 
 -   **LSBMD** was modeled as a function of bone turnover markers
@@ -215,7 +225,7 @@ ggplot(out) +
    geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-17-1.png)
+![](img/OpenBoneMin-unnamed-chunk-18-1.png)
 
 Publication figure 4: BSAP vs time
 ----------------------------------
@@ -231,7 +241,7 @@ ggplot(out) +
   geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-18-1.png)
+![](img/OpenBoneMin-unnamed-chunk-19-1.png)
 
 Publication figure 5: LS BMD vs time
 ------------------------------------
@@ -246,7 +256,7 @@ ggplot(out) +
   geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-19-1.png)
+![](img/OpenBoneMin-unnamed-chunk-20-1.png)
 
 Publication figure 6: TGF-*β* vs time
 -------------------------------------
@@ -270,4 +280,4 @@ ggplot(out) +
   scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225)) 
 ```
 
-![](img/OpenBoneMin-unnamed-chunk-20-1.png)
+![](img/OpenBoneMin-unnamed-chunk-21-1.png)
