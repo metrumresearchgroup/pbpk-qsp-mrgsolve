@@ -83,7 +83,7 @@ Plot the percent change in lumbar spine BMD versus time
 plot(out, BMDlsDENchange ~ .)
 ```
 
-# Riggs and Peterson 2012
+# Peterson and Riggs 2012
 
 
 __Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a 

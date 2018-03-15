@@ -7,7 +7,7 @@ Metrum Research Group, LLC
 -   [Load the Bone / Mineral model](#load-the-bone-mineral-model)
 -   [Teriparatide example](#teriparatide-example)
 -   [Denosumab example](#denosumab-example)
--   [Riggs and Peterson 2012](#riggs-and-peterson-2012)
+-   [Peterson and Riggs 2012](#peterson-and-riggs-2012)
     -   [Generate the dosing regimens](#generate-the-dosing-regimens)
     -   [Publication figure 3: CTx vs time](#publication-figure-3-ctx-vs-time)
     -   [Publication figure 4: BSAP vs time](#publication-figure-4-bsap-vs-time)
@@ -107,7 +107,7 @@ plot(out, BMDlsDENchange ~ .)
 
 ![](img/OpenBoneMin-unnamed-chunk-10-1.png)
 
-Riggs and Peterson 2012
+Peterson and Riggs 2012
 =======================
 
 **Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a Multiscale Systems Pharmacology Model**
