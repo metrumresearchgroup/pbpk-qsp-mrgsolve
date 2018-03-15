@@ -12,7 +12,7 @@ Metrum Research Group, LLC
     -   [Publication figure 3: CTx vs time](#publication-figure-3-ctx-vs-time)
     -   [Publication figure 4: BSAP vs time](#publication-figure-4-bsap-vs-time)
     -   [Publication figure 5: LS BMD vs time](#publication-figure-5-ls-bmd-vs-time)
-    -   [Publication figure 6: TGF beta vs time](#publication-figure-6-tgf-beta-vs-time)
+    -   [Publication figure 6: TGF-*β* vs time](#publication-figure-6-tgf-beta-vs-time)
 
 Background and Motivation
 =========================
@@ -41,6 +41,8 @@ mod <- BoneMin()
 Teriparatide example
 ====================
 
+-   Teriparatide is a recombinant parathyroid (PTH) hormone, containing only the first 84 amino acid residues
+-   Teriparatide doses are administered subcutaneously and are absorbed into the PTH compartment; so teriparatide is considered equivalent to PTH
 -   We'll give either 20 or 40 micrograms SQ daily for
 
 ``` r
@@ -82,6 +84,9 @@ plot(out, CaC~time)
 Denosumab example
 =================
 
+-   Denosumab is a human monoclonal antibody that binds RANK ligand (RANKL), preventing the formation of RANK/RANKL complex and subsequent simulation of osteoclast maturation
+-   The labeled dose for treatment of osteoporosis is 60 mg SQ every 6 months
+
 ``` r
 out <- sim_denos(dose = c(30,60,210))
 
@@ -100,7 +105,18 @@ plot(out, BMDlsDENchange ~ .)
 Riggs and Peterson 2012
 =======================
 
-Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a Multiscale Systems Pharmacology Model
+**Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a Multiscale Systems Pharmacology Model**
+
+-   Bone is constantly being remodeled, constantly turning over. This remodeling process consists of breaking down old bone and building up new bone.
+    -   *Osteoclasts* are cells that function to disassemble bone (resorption) and *osteoblasts* are cells that function to synthesize or build new bone.
+    -   One therapeutic strategy for osteoporosis (porous bone) is to inhibit osteoclast activity and thus inhibit the bone resorption activity.
+    -   **Denosumab** decreases osteoclast activity by preventing maturation of pre-osteoclasts into fully-functional osteoclast cells.
+-   The goal of the modeling was to predict nonlinear changes in lumbar spine (LS) bone mineral density (BMD) over 48 months of denosumab treatment under different dosing regimens.
+
+-   **LSBMD** was modeled as a function of bone turnover markers
+    -   CTx: C-telopeptide, a marker for osteoclast function
+    -   BSAP: bone-specific alkaline phosphatase, a marker for osteoblast function
+-   Our **simulation objective** is to recreate figures 3, 4, 5, and 6 from the publication. This will show the changes in CTx and BSAP and the subsequent changes in BMD under the model.
 
 Generate the dosing regimens
 ----------------------------
@@ -109,13 +125,19 @@ Generate the dosing regimens
 
 ``` r
 month <- 24*28
-regi <- function(x) factor(x,labels = c("60q6M", "14q6M", "30q3M", "210q6M"))
+regi <- function(x) factor(x,labels = c("60 mg Q6M", "14 mg Q6M", 
+                                        "30 mg Q3M", "210 mg Q6M"))
 xscale <- scale_x_continuous(breaks = c(0,3,6,12,18,24,36,48), limits = c(0,48))
 ```
 
 ``` r
 e1 <- ev(amt = 60, ii = 6*month, addl = 7)
+e1
 ```
+
+    . Events:
+    .   time cmt amt   ii addl evid
+    . 1    0   1  60 4032    7    1
 
 **14 mg every 6 months x4, then 60 mg every 6 months x4**
 
@@ -156,7 +178,7 @@ e4
     .   time cmt amt   ii addl evid
     . 1    0   1 210 4032    3    1
 
-Create one single data set from which to simulate
+**Create one single data set from which to simulate**
 
 ``` r
 data <- as_data_set(e1,e2,e3,e4)
@@ -173,15 +195,20 @@ data
     . 6  4     0   1    1 210 4032    3
 
 ``` r
-out <- mrgsim_df(mod, data = data, end = 48*month, delta = 0.5)
+out <- 
+  mod %>%
+  mrgsim(data = data, end = 48*month, delta = 24) %>% 
+  mutate(ID = regi(ID), Month = time/month)
 ```
 
 Publication figure 3: CTx vs time
 ---------------------------------
 
+Shown here is the percent change from baseline value for osteoclasts (via CTx)
+
 ``` r
 ggplot(out) + 
-  geom_line(aes(x = time/month, y = OCchange, col = factor(ID)), lwd = 1) + 
+  geom_line(aes(x = Month, y = OCchange, col = factor(ID)), lwd = 1) + 
   facet_grid(~ID) + geom_hline(yintercept = 100, lty = 2) +
   scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) + 
   theme_bw() + theme(legend.position = "top") +
@@ -193,9 +220,11 @@ ggplot(out) +
 Publication figure 4: BSAP vs time
 ----------------------------------
 
+Shown here is the percent change from baseline value for osteoblasts (via BSAP)
+
 ``` r
 ggplot(out) + 
-  geom_line(aes(x = time/(month), y = OBchange, col = factor(ID)), lwd = 1) + 
+  geom_line(aes(x = Month, y = OBchange, col = factor(ID)), lwd = 1) + 
   facet_grid(~ID) + geom_hline(yintercept = 100, lty = 2) +
   scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) +
   theme_bw() + theme(legend.position = "top") + 
@@ -207,9 +236,11 @@ ggplot(out) +
 Publication figure 5: LS BMD vs time
 ------------------------------------
 
+Shown here is the percent change from baseline value for lumbar spine BMD
+
 ``` r
 ggplot(out) + 
-  geom_line(aes(x = time/(month), y = BMDlsDENchange, col = factor(ID)), lwd = 1) + 
+  geom_line(aes(x = Month, y = BMDlsDENchange, col = factor(ID)), lwd = 1) + 
   facet_grid(~ID) + 
   theme_bw() + theme(legend.position = "top") + 
   geom_vline(xintercept = c(24,36), lty = 3) + xscale
@@ -217,18 +248,22 @@ ggplot(out) +
 
 ![](img/OpenBoneMin-unnamed-chunk-19-1.png)
 
-Publication figure 6: TGF beta vs time
---------------------------------------
+Publication figure 6: TGF-*β* vs time
+-------------------------------------
+
+-   Solid lines are **active** TGF-*β*
+-   Dashed lines are **latent** TGF-*β*
 
 ``` r
 out <- 
   out %>%
   group_by(ID) %>%
-  mutate(TGF = 100*TGFBact/first(TGFBact)) %>% 
+  mutate(ATGF = 100*TGFBact/first(TGFBact), LTGF = 100*TGFB/first(TGFB)) %>%
   ungroup
 
 ggplot(out) + 
-  geom_line(aes(x = time/(month), y = TGF, col = factor(ID)), lwd = 1) + 
+  geom_line(aes(x = Month, y = ATGF, col = factor(ID)), lwd = 1) + 
+  geom_line(aes(x = Month, y = LTGF), col = "black", lty = 2, lwd = 0.6) + 
   facet_grid(~ID) + 
   theme_bw() + theme(legend.position = "top") + 
   geom_vline(xintercept = c(24,36), lty = 3) + xscale +
