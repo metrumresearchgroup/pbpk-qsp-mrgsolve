@@ -1,30 +1,186 @@
 ---
-title: "Untitled"
-output: github_document
+title: "Clinical responses to ERK inhibition in BRAF{V600E}-mutant colorectal cancer"
+author: "Metrum Research Group, LLC"
+date: ""
+output: 
+  github_document:
+    toc: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r, echo = FALSE}
+knitr::opts_chunk$set(comment = '.', fig.path = "img/mapk-", 
+                      message = FALSE, warning = FALSE)
 ```
 
-## GitHub Documents
 
-This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
-
-## Including Code
-
-You can include R code in the document as follows:
-
-```{r cars}
-summary(cars)
+```{r}
+library(mrgsolve)
+library(tidyverse)
+source("functions.R")
 ```
 
-## Including Plots
+__Clinical responses to ERK inhibition in BRAF{V600E}-mutant colorectal cancer predicted using a computational model__
 
-You can also embed plots, for example:
+- Daniel C. Kirouac, Gabriele Schaefer, Jocelyn Chan, Mark Merchant, Christine
+Orr, Shih-Min A. Huang, John Moffat, Lichuan Liu, Kapil Gadkar and Saroja
+Ramanujan
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+- npj Systems Biology and Applications  (2017) 3:14 ; doi:10.1038 / 
+s41540-017-0016-1
+
+# Translation 
+
+- Model published as SBML
+- Translator from previous project work using R bindings to libSBML
+- Minor modifications to the translator code to
+  accommodate the MAPK model as published
+
+# Demo
+
+- Re-create figure 6B in the publication 
+
+```{r, message = FALSE}
+mod <- mread_cache("mapk", "models")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Read in the virtual population
+
+```{r}
+vp <- readRDS("data/s10vpop_pk.RDS")
+
+dim(vp)
+```
+
+Update the model object with one set of parameters
+
+```{r}
+mod <- param(mod, slice(vp, 1))
+```
+
+
+
+## Generate dosing regimens
+
+
+- __No treatment__
+
+```{r}
+data0 <- ev(amt=0, cmt=8)
+```
+
+- __BRAF inhibitor__ - vemurafanib (VEMU)
+- Compartment 8
+```{r}
+dataV <- ev(amt=960,  cmt=8, ii=0.5, addl=120)
+```
+
+- __ERK inhibitor__ - GCD-994 (GDC)
+- Compartment 12
+```{r}
+dataG <- ev(amt = 400, cmt = 12, ii = 1, addl = 20)
+
+dataG <- seq(dataG, wait = 7, dataG) 
+
+out <- mrgsim(mod, ev=dataG, end=56)
+
+plot(out, ERKi_C~time)
+```
+
+
+- __MEK inhibitor__ - cobimetinib (COBI)
+- Compartment 10
+```{r}
+dataCO <- mutate(dataG,amt=60,cmt=10)
+```
+
+- __EGFR inihbitor__ - cetuximab (CETUX)
+- Compartment 7
+```{r}
+dataCE <- ev(cmt=7,ii=7,addl=7,amt=450)
+```
+
+
+
+
+We create two functions: one to combine dosing regimens
+and the other to simulate from a dosing regimen
+```{r}
+comb <- function(...) {
+  x <- lapply(list(...), as.data.frame)
+  bind_rows(x) %>% arrange(time)
+}
+
+sim <- function(Data,Vp,Mod) {
+  Mod %>%
+    ev(as.ev(Data)) %>%
+    mrgsim(idata=Vp,end=-1, add = 56) %>%
+    filter(time==56) 
+}
+```
+
+For example
+
+```{r}
+comb(dataCE,dataV)
+
+sim(comb(dataCE,dataV), Vp = slice(vp,seq(10)), Mod = mod)
+```
+
+
+
+Generate a data frame of runs to do
+
+```{r}
+sims <- 
+  tribble(
+    ~label, ~object, 
+    "No Treatment",        data0,
+    "CETUX",               dataCE, 
+    "VEMU",                dataV,
+    "COBI",                dataCO, 
+    "GDC",                 dataG,
+    "CETUX+VEMU",          comb(dataCE, dataV), 
+    "CETUX+COBI",          comb(dataCE, dataCO), 
+    "CETUX+GDC",           comb(dataCE, dataG),
+    "VEMU+COBI",           comb(dataV, dataG), 
+    "VEMU+GDC",            comb(dataV, dataG),
+    "COBI+GDC",            comb(dataCO, dataG),
+    "CETUX+VEMU+COBI",     comb(dataCE, dataV,dataCO), 
+    "CETUX+VEMU+GDC",      comb(dataCE, dataV,dataG), 
+    "CETUX+COBI+GDC",      comb(dataCE, dataCO,dataG), 
+    "VEMU+COBI+GDC",       comb(dataV, dataCO,dataG),
+    "CETUX+VEMU+COBI+GDC", comb(dataCE, dataV, dataCO, dataG)
+  ) %>% mutate(object = map(object,as.data.frame))
+
+```
+
+
+Run the simulation
+
+```{r}
+sims <- mutate(sims, out = parallel::mclapply(object,sim, Vp = vp, Mod = mod))
+```
+
+
+Get ready to plot
+```{r}
+sms <- select(sims, label, out) %>% unnest()
+
+sms <- mutate(sms, labelf = fct_inorder(label))
+
+head(sms)
+```
+
+
+```{r}
+p1 <- 
+  ggplot(data=sms) + 
+  geom_point(aes(x=labelf, y=TUMOR),position=position_jitter(width=0.15),col="grey") +
+  scale_y_continuous(limits=c(0,2.5),name="Tumor size",breaks=c(0,0.5,1,1.5,2,2.5,3)) +
+  scale_x_discrete(name="") + 
+  geom_hline(yintercept=0.7,col="firebrick", lty=1,lwd=1)  +
+  geom_boxplot(aes(x=labelf,y=TUMOR),fill="darkslateblue",col="darkslateblue",alpha=0.2) +
+  theme_plain() + rotx(30)
+p1
+```
+
