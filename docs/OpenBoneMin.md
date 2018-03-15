@@ -275,7 +275,7 @@ ggplot(out) +
   geom_line(aes(x = Month, y = ATGF, col = factor(ID)), lwd = 1) + 
   geom_line(aes(x = Month, y = LTGF), col = "black", lty = 2, lwd = 0.6) + 
   facet_grid(~ID) + 
-  theme_bw() + theme(legend.position = "top") + 
+  theme_minimal() + theme(legend.position = "top") + 
   geom_vline(xintercept = c(24,36), lty = 3) + xscale +
   scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225)) 
 ```
