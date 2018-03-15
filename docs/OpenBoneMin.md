@@ -112,10 +112,7 @@ Riggs and Peterson 2012
 
 **Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a Multiscale Systems Pharmacology Model**
 
-Peterson MC, Riggs MM. CPT Pharmacometrics Syst Pharmacol. 2012 Nov 14;1:e14. doi: 10.1038/psp.2012.15. PubMed PMID: 23835796; PubMed Central PMCID: PMC3600731.
-
-<https://www.ncbi.nlm.nih.gov/pubmed/23835796>
-<https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3600731>
+Peterson MC, Riggs MM. CPT Pharmacometrics Syst Pharmacol. 2012 Nov 14;1:e14. doi: 10.1038/psp.2012.15. PubMed PMID: 23835796; PubMed Central PMCID: PMC3600731 [PubMed Citation](https://www.ncbi.nlm.nih.gov/pubmed/23835796) / [Free Full Text](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3600731)
 
 -   Bone is constantly being remodeled, constantly turning over. This remodeling process consists of breaking down old bone and building up new bone
     -   *Osteoclasts* are cells that function to disassemble bone (resorption) and *osteoblasts* are cells that function to synthesize or build new bone
@@ -275,7 +272,7 @@ ggplot(out) +
   geom_line(aes(x = Month, y = ATGF, col = factor(ID)), lwd = 1) + 
   geom_line(aes(x = Month, y = LTGF), col = "black", lty = 2, lwd = 0.6) + 
   facet_grid(~ID) + 
-  theme_minimal() + theme(legend.position = "top") + 
+  theme_bw() + theme(legend.position = "top") + 
   geom_vline(xintercept = c(24,36), lty = 3) + xscale +
   scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225)) 
 ```
