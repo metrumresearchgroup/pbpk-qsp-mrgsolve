@@ -14,13 +14,13 @@ knitr::opts_chunk$set(comment = '.', fig.path = "img/mapk-",
 ```
 
 
-```{r}
-library(mrgsolve)
-library(tidyverse)
-source("functions.R")
-```
 
-__Clinical responses to ERK inhibition in BRAF{V600E}-mutant colorectal cancer predicted using a computational model__
+
+
+# Reference 
+
+__Clinical responses to ERK inhibition in BRAF{V600E}-mutant colorectal cancer 
+predicted using a computational model__
 
 - Daniel C. Kirouac, Gabriele Schaefer, Jocelyn Chan, Mark Merchant, Christine
 Orr, Shih-Min A. Huang, John Moffat, Lichuan Liu, Kapil Gadkar and Saroja
@@ -29,7 +29,7 @@ Ramanujan
 - npj Systems Biology and Applications  (2017) 3:14 ; doi:10.1038 / 
 s41540-017-0016-1
 
-# About
+## Introduction
 
 (Summarized from Introduction in the reference)
 
@@ -47,7 +47,7 @@ V600E mutant melanoma, but not so much in colorectal cancer
 with a model characterizing this biology?
 
 ## Cast of characters
-- __vemurafenib__: BFAF inhibitor (selective for V600E mutant)
+- __vemurafenib__: BRAF inhibitor (selective for V600E mutant)
 - __cobimetinib__: MEK inhibitor
 - __cetuximab__: EGFR antibody
 - __GDC-0994__: ERK inhibitor (the star)
@@ -59,7 +59,12 @@ with a model characterizing this biology?
 - Minor modifications to the translator code to
   accommodate the MAPK model as published
 
-# Explore
+# Set up
+```{r}
+library(mrgsolve)
+library(tidyverse)
+source("functions.R")
+```
 
 Read in the virtual population
 
@@ -76,6 +81,12 @@ mod <- mread_cache("mapk", "models") %>% update(end  = 56)
 mod <- param(mod, filter(vp,VPOP2==24))
 ```
 
+
+# Explore
+
+
+## Simulate with MEK inhibitor
+
 ```{r}
 e <- expand.ev(amt = c(1,3,10,30,60,100), cmt = 10, ii = 1, addl = 20)
 
@@ -88,7 +99,16 @@ mod %>%
   plot(MEKi+TUMOR ~ time)
 ```
 
-- Look at MAPK dependence
+## Sensitivity analysis
+
+```{r}
+summary(vp$wOR)
+summary(vp$dmax)
+```
+
+
+__Sensitivity analysis on MAPK pathway dependence__
+
 ```{r}
 library(mrgsolvetk)
 
@@ -99,10 +119,10 @@ mod %>%
   sens_spaced(wOR = c(0.9,0.99), .n = 10) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
-  
 ```
 
-- What about $\delta_{max}$ dependence?
+
+__Sensitivity analysis on $\delta_{max}$__
 
 
 ```{r}
@@ -113,26 +133,12 @@ mod %>%
   mutate(value = signif(value,3)) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
-
 ```
 
 
 # Combination therapies
 
 - Re-create figure 6B in the publication 
-
-
-
-Update the model object with one set of parameters
-
-```{r}
-mod <- param(mod, slice(vp, 1))
-```
-
-```{r}
-summary(vp$wOR)
-summary(vp$dmax)
-```
 
 
 ## Generate dosing regimens
@@ -203,6 +209,7 @@ sim(comb(dataCE,dataV), Vp = slice(vp,seq(10)), Mod = mod)
 ```
 
 
+## Simulate all combination therapies
 
 Generate a data frame of runs to do
 
@@ -237,6 +244,7 @@ Run the simulation
 sims <- mutate(sims, out = parallel::mclapply(object,sim, Vp = vp, Mod = mod))
 ```
 
+## Summarize and plot
 
 Get ready to plot
 ```{r}

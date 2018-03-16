@@ -2,18 +2,21 @@ Clinical responses to ERK inhibition in BRAF{V600E}-mutant colorectal cancer
 ================
 Metrum Research Group, LLC
 
--   [About](#about)
+-   [Reference](#reference)
+    -   [Introduction](#introduction)
     -   [Cast of characters](#cast-of-characters)
 -   [Translation](#translation)
+-   [Set up](#set-up)
 -   [Explore](#explore)
+    -   [Simulate with MEK inhibitor](#simulate-with-mek-inhibitor)
+    -   [Sensitivity analysis](#sensitivity-analysis)
 -   [Combination therapies](#combination-therapies)
     -   [Generate dosing regimens](#generate-dosing-regimens)
+    -   [Simulate all combination therapies](#simulate-all-combination-therapies)
+    -   [Summarize and plot](#summarize-and-plot)
 
-``` r
-library(mrgsolve)
-library(tidyverse)
-source("functions.R")
-```
+Reference
+=========
 
 **Clinical responses to ERK inhibition in BRAF{V600E}-mutant colorectal cancer predicted using a computational model**
 
@@ -21,8 +24,8 @@ source("functions.R")
 
 -   npj Systems Biology and Applications (2017) 3:14 ; <doi:10.1038> / s41540-017-0016-1
 
-About
-=====
+Introduction
+------------
 
 (Summarized from Introduction in the reference)
 
@@ -36,7 +39,7 @@ About
 Cast of characters
 ------------------
 
--   **vemurafenib**: BFAF inhibitor (selective for V600E mutant)
+-   **vemurafenib**: BRAF inhibitor (selective for V600E mutant)
 -   **cobimetinib**: MEK inhibitor
 -   **cetuximab**: EGFR antibody
 -   **GDC-0994**: ERK inhibitor (the star)
@@ -48,8 +51,14 @@ Translation
 -   Translator from previous project work using R bindings to libSBML
 -   Minor modifications to the translator code to accommodate the MAPK model as published
 
-Explore
-=======
+Set up
+======
+
+``` r
+library(mrgsolve)
+library(tidyverse)
+source("functions.R")
+```
 
 Read in the virtual population
 
@@ -69,6 +78,12 @@ mod <- mread_cache("mapk", "models") %>% update(end  = 56)
 mod <- param(mod, filter(vp,VPOP2==24))
 ```
 
+Explore
+=======
+
+Simulate with MEK inhibitor
+---------------------------
+
 ``` r
 e <- expand.ev(amt = c(1,3,10,30,60,100), cmt = 10, ii = 1, addl = 20)
 
@@ -83,46 +98,8 @@ mod %>%
 
 ![](img/mapk-unnamed-chunk-5-1.png)
 
--   Look at MAPK dependence
-
-``` r
-library(mrgsolvetk)
-
-dat <- filter(e, amt==60) %>% select(-ID) %>% as.ev
-
-mod %>% 
-  ev(as.ev(dat)) %>% Req(TUMOR) %>%
-  sens_spaced(wOR = c(0.9,0.99), .n = 10) %>%
-  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
-  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
-```
-
-![](img/mapk-unnamed-chunk-6-1.png)
-
--   What about *δ*<sub>*m**a**x*</sub> dependence?
-
-``` r
-mod %>% 
-  ev(as.ev(dat)) %>% Req(TUMOR) %>%
-  select(dmax) %>% 
-  sens_spaced_factor(.factor = 2, .n = 10) %>%
-  mutate(value = signif(value,3)) %>%
-  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
-  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
-```
-
-![](img/mapk-unnamed-chunk-7-1.png)
-
-Combination therapies
-=====================
-
--   Re-create figure 6B in the publication
-
-Update the model object with one set of parameters
-
-``` r
-mod <- param(mod, slice(vp, 1))
-```
+Sensitivity analysis
+--------------------
 
 ``` r
 summary(vp$wOR)
@@ -137,6 +114,41 @@ summary(vp$dmax)
 
     .    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
     . 0.03306 0.03939 0.04257 0.04264 0.04629 0.05218
+
+**Sensitivity analysis on MAPK pathway dependence**
+
+``` r
+library(mrgsolvetk)
+
+dat <- filter(e, amt==60) %>% select(-ID) %>% as.ev
+
+mod %>% 
+  ev(as.ev(dat)) %>% Req(TUMOR) %>%
+  sens_spaced(wOR = c(0.9,0.99), .n = 10) %>%
+  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
+  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
+```
+
+![](img/mapk-unnamed-chunk-7-1.png)
+
+**Sensitivity analysis on *δ*<sub>*m**a**x*</sub>**
+
+``` r
+mod %>% 
+  ev(as.ev(dat)) %>% Req(TUMOR) %>%
+  select(dmax) %>% 
+  sens_spaced_factor(.factor = 2, .n = 10) %>%
+  mutate(value = signif(value,3)) %>%
+  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
+  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
+```
+
+![](img/mapk-unnamed-chunk-8-1.png)
+
+Combination therapies
+=====================
+
+-   Re-create figure 6B in the publication
 
 Generate dosing regimens
 ------------------------
@@ -167,7 +179,7 @@ out <- mrgsim(mod, ev=dataG, end=56)
 plot(out, ERKi_C~time)
 ```
 
-![](img/mapk-unnamed-chunk-12-1.png)
+![](img/mapk-unnamed-chunk-11-1.png)
 
 -   **MEK inhibitor** - cobimetinib (COBI)
 -   Compartment 10
@@ -232,6 +244,9 @@ sim(comb(dataCE,dataV), Vp = slice(vp,seq(10)), Mod = mod)
     . #   ERKi <dbl>, ERKi_C <dbl>, RAFi <dbl>, MEKi <dbl>, TUMOR <dbl>,
     . #   GDC <dbl>
 
+Simulate all combination therapies
+----------------------------------
+
 Generate a data frame of runs to do
 
 ``` r
@@ -262,6 +277,9 @@ Run the simulation
 ``` r
 sims <- mutate(sims, out = parallel::mclapply(object,sim, Vp = vp, Mod = mod))
 ```
+
+Summarize and plot
+------------------
 
 Get ready to plot
 
@@ -300,4 +318,4 @@ p1 <-
 p1
 ```
 
-![](img/mapk-unnamed-chunk-20-1.png)
+![](img/mapk-unnamed-chunk-19-1.png)
