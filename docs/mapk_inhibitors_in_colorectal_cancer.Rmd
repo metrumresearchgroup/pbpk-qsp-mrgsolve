@@ -14,9 +14,6 @@ knitr::opts_chunk$set(comment = '.', fig.path = "img/mapk-",
 ```
 
 
-
-
-
 # Reference 
 
 __Clinical responses to ERK inhibition in BRAF{V600E}-mutant colorectal cancer 
@@ -26,7 +23,7 @@ predicted using a computational model__
 Orr, Shih-Min A. Huang, John Moffat, Lichuan Liu, Kapil Gadkar and Saroja
 Ramanujan
 
-- npj Systems Biology and Applications  (2017) 3:14 ; doi:10.1038 / 
+- npj Systems Biology and Applications (2017) 3:14 ; doi:10.1038 / 
 s41540-017-0016-1
 
 ## Introduction
@@ -42,9 +39,8 @@ V600E mutant melanoma, but not so much in colorectal cancer
     - Could resistance to BRAF inhibitors be mediated through 
       EGFR signalling through RAS and CRAF?
     - What about inhibition at ERK?
-
-- Could the effectiveness of different combination therapies be predicted
-with a model characterizing this biology?
+    - Could the effectiveness of different combination therapies be predicted
+      with a model characterizing this biology?
 
 ## Cast of characters
 - __vemurafenib__: BRAF inhibitor (selective for V600E mutant)
@@ -88,9 +84,9 @@ mod <- param(mod, filter(vp,VPOP2==24))
 ## Simulate with MEK inhibitor
 
 ```{r}
-e <- expand.ev(amt = c(1,3,10,30,60,100), cmt = 10, ii = 1, addl = 20)
+e <- expand.ev(amt = c(1,5,10,30,60,100), cmt = 10, ii = 1, addl = 20)
 
-e <- ev_seq(e, wait = 7, e) %>% as_data_frame %>%  arrange(ID)
+e <- ev_seq(e, wait = 7, e) %>% as_data_frame() %>% arrange(ID)
 
 mod %>% 
   data_set(e) %>%
@@ -101,22 +97,38 @@ mod %>%
 
 ## Sensitivity analysis
 
+
+The authors note two parameters that are particularly influential with 
+respect to response rates:
+
+- wOR: MAPK pathway dependence parameter
+- $\delta_{max}$: the maximum cell death rate
+
+
 ```{r}
-summary(vp$wOR)
-summary(vp$dmax)
+vp %>% select(wOR,dmax) %>%
+  map(quantile, probs = seq(0,1,0.1)) %>% 
+  bind_cols() %>% mutate(pctile = seq(0,1,0.1))
 ```
 
 
 __Sensitivity analysis on MAPK pathway dependence__
 
+- Given the other parameters for this virtual patient, whenever 
+wOR falls below 90% or so, you get no change in tumor size
+
+- The authors discuss the possibility of looking for biomarkers that would 
+indicate a patient is showing high dependence on MAPK signalling to improve
+response rates
+
 ```{r}
 library(mrgsolvetk)
 
-dat <- filter(e, amt==60) %>% select(-ID) %>% as.ev
+ev60 <- filter(e, amt==60) %>% select(-ID) %>% as.ev()
 
 mod %>% 
-  ev(as.ev(dat)) %>% Req(TUMOR) %>%
-  sens_spaced(wOR = c(0.9,0.99), .n = 10) %>%
+  ev(ev60) %>% Req(TUMOR) %>%
+  sens_range(wOR = c(0.9,0.99), .n = 10) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
 ```
@@ -124,19 +136,35 @@ mod %>%
 
 __Sensitivity analysis on $\delta_{max}$__
 
+- In this analysis, we look between 0.2 and 2 times the nominal 
+parameter value for this virtual patient
+
+- The authors do a simulation with a hypothetical agent that increases the 
+cell death rate by 10%
 
 ```{r}
 mod %>% 
-  ev(as.ev(dat)) %>% Req(TUMOR) %>%
+  ev(ev60) %>% Req(TUMOR) %>%
   select(dmax) %>% 
-  sens_spaced_factor(.factor = 2, .n = 10) %>%
+  sens_range(.factor = c(0.2, 2), .n = 10) %>%
   mutate(value = signif(value,3)) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
 ```
 
 
-# Combination therapies
+```{r}
+mod %>% 
+  ev(ev60) %>% Req(TUMOR) %>%
+  select(taui3) %>% 
+  sens_range(.factor = c(0.2, 2), .n = 10) %>%
+  mutate(value = signif(value,3)) %>%
+  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
+  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
+```
+
+
+# Predicting clinical outcomes for combination therapies
 
 - Re-create figure 6B in the publication 
 

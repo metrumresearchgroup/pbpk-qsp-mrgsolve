@@ -10,7 +10,7 @@ Metrum Research Group, LLC
 -   [Explore](#explore)
     -   [Simulate with MEK inhibitor](#simulate-with-mek-inhibitor)
     -   [Sensitivity analysis](#sensitivity-analysis)
--   [Combination therapies](#combination-therapies)
+-   [Predicting clinical outcomes for combination therapies](#predicting-clinical-outcomes-for-combination-therapies)
     -   [Generate dosing regimens](#generate-dosing-regimens)
     -   [Simulate all combination therapies](#simulate-all-combination-therapies)
     -   [Summarize and plot](#summarize-and-plot)
@@ -34,7 +34,7 @@ Introduction
 -   BRAF and MEK inhibitors were found to be effective in V600E mutant melanoma, but not so much in colorectal cancer
     -   Could resistance to BRAF inhibitors be mediated through EGFR signalling through RAS and CRAF?
     -   What about inhibition at ERK?
--   Could the effectiveness of different combination therapies be predicted with a model characterizing this biology?
+    -   Could the effectiveness of different combination therapies be predicted with a model characterizing this biology?
 
 Cast of characters
 ------------------
@@ -85,9 +85,9 @@ Simulate with MEK inhibitor
 ---------------------------
 
 ``` r
-e <- expand.ev(amt = c(1,3,10,30,60,100), cmt = 10, ii = 1, addl = 20)
+e <- expand.ev(amt = c(1,5,10,30,60,100), cmt = 10, ii = 1, addl = 20)
 
-e <- ev_seq(e, wait = 7, e) %>% as_data_frame %>%  arrange(ID)
+e <- ev_seq(e, wait = 7, e) %>% as_data_frame() %>% arrange(ID)
 
 mod %>% 
   data_set(e) %>%
@@ -101,30 +101,46 @@ mod %>%
 Sensitivity analysis
 --------------------
 
-``` r
-summary(vp$wOR)
-```
+The authors note two parameters that are particularly influential with respect to response rates:
 
-    .    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-    .  0.7540  0.8678  0.9060  0.9108  0.9694  1.0000
+-   wOR: MAPK pathway dependence parameter
+-   *δ*<sub>*m**a**x*</sub>: the maximum cell death rate
 
 ``` r
-summary(vp$dmax)
+vp %>% select(wOR,dmax) %>%
+  map(quantile, probs = seq(0,1,0.1)) %>% 
+  bind_cols() %>% mutate(pctile = seq(0,1,0.1))
 ```
 
-    .    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-    . 0.03306 0.03939 0.04257 0.04264 0.04629 0.05218
+    . # A tibble: 11 x 3
+    .      wOR   dmax pctile
+    .    <dbl>  <dbl>  <dbl>
+    .  1 0.754 0.0331  0.   
+    .  2 0.828 0.0369  0.100
+    .  3 0.860 0.0380  0.200
+    .  4 0.873 0.0400  0.300
+    .  5 0.890 0.0416  0.400
+    .  6 0.906 0.0426  0.500
+    .  7 0.918 0.0440  0.600
+    .  8 0.951 0.0449  0.700
+    .  9 0.977 0.0464  0.800
+    . 10 1.00  0.0485  0.900
+    . 11 1.00  0.0522  1.00
 
 **Sensitivity analysis on MAPK pathway dependence**
+
+-   Given the other parameters for this virtual patient, whenever wOR falls below 90% or so, you get no change in tumor size
+
+-   The authors discuss the possibility of looking for biomarkers that would indicate a patient is showing high dependence on MAPK signalling to improve response rates
 
 ``` r
 library(mrgsolvetk)
 
-dat <- filter(e, amt==60) %>% select(-ID) %>% as.ev
+ev60 <- filter(e, amt==60) %>% select(-ID) %>% as.ev()
 
 mod %>% 
-  ev(as.ev(dat)) %>% Req(TUMOR) %>%
-  sens_spaced(wOR = c(0.9,0.99), .n = 10) %>%
+  ev(ev60) %>% Req(TUMOR) %>%
+  sens_range(wOR = c(0.9,0.99), .n = 10) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
 ```
@@ -133,11 +149,15 @@ mod %>%
 
 **Sensitivity analysis on *δ*<sub>*m**a**x*</sub>**
 
+-   In this analysis, we look between 0.2 and 2 times the nominal parameter value for this virtual patient
+
+-   The authors do a simulation with a hypothetical agent that increases the cell death rate by 10%
+
 ``` r
 mod %>% 
-  ev(as.ev(dat)) %>% Req(TUMOR) %>%
+  ev(ev60) %>% Req(TUMOR) %>%
   select(dmax) %>% 
-  sens_spaced_factor(.factor = 2, .n = 10) %>%
+  sens_range(.factor = c(0.2, 2), .n = 10) %>%
   mutate(value = signif(value,3)) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
@@ -145,8 +165,20 @@ mod %>%
 
 ![](img/mapk-unnamed-chunk-8-1.png)
 
-Combination therapies
-=====================
+``` r
+mod %>% 
+  ev(ev60) %>% Req(TUMOR) %>%
+  select(taui3) %>% 
+  sens_range(.factor = c(0.2, 2), .n = 10) %>%
+  mutate(value = signif(value,3)) %>%
+  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
+  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
+```
+
+![](img/mapk-unnamed-chunk-9-1.png)
+
+Predicting clinical outcomes for combination therapies
+======================================================
 
 -   Re-create figure 6B in the publication
 
@@ -179,7 +211,7 @@ out <- mrgsim(mod, ev=dataG, end=56)
 plot(out, ERKi_C~time)
 ```
 
-![](img/mapk-unnamed-chunk-11-1.png)
+![](img/mapk-unnamed-chunk-12-1.png)
 
 -   **MEK inhibitor** - cobimetinib (COBI)
 -   Compartment 10
@@ -318,4 +350,4 @@ p1 <-
 p1
 ```
 
-![](img/mapk-unnamed-chunk-19-1.png)
+![](img/mapk-unnamed-chunk-20-1.png)

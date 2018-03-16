@@ -1,30 +1,88 @@
 ---
 title: "Untitled"
-output: github_document
+output: 
+  github_document: 
+   toc: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, comment = '.', warning = FALSE, message = FALSE, 
+                      fig.path = "img/rifampin_midazolam_ddi-")
 ```
 
-## GitHub Documents
-
-This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
-
-## Including Code
-
-You can include R code in the document as follows:
-
-```{r cars}
-summary(cars)
+```{r}
+library(mrgsolve)
+library(tidyverse)
+library(PKPDmisc)
+theme_set(theme_bw())
+theme_update(legend.position = "top")
 ```
 
-## Including Plots
+# Rifampin / Midazolam DDI Model
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+mod <- mread_cache("rifampicin_midazolam", "models", delta = 0.1)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+- Single dose
+```{r}
+rif <- ev(amt = 600)
+rif
+```
+
+
+```{r}
+mod %>%
+  ev(rif) %>% 
+  Req(Ccentral) %>%
+  mrgsim(end = 48) %>% 
+  plot()
+```
+
+
+- Multiple dose ... What's going on here?
+```{r}
+rif <- mutate(rif, ii = 24, addl = 9)
+
+rif
+
+out <- 
+  mod %>%
+  ev(rif) %>% 
+  mrgsim(end = 240)
+
+plot(out, Ccentral ~ time)
+
+```
+
+
+- Anything else?
+ 
+```{r}
+out %>% 
+ mutate(DAY = 1+floor(time/24)) %>%
+ group_by(DAY) %>% 
+ summarise(AUC = auc_partial(time,Ccentral)) %>% 
+ ungroup %>% 
+ mutate(pAUC = 100*AUC/first(AUC))
+```
+
+
+```{r}
+simsm <- 
+  out %>%
+  as_data_frame() %>%
+  gather(variable, value, c(UGT_ratio_HC5, CYP3A4_ratio_HC5))
+
+simsm %>%
+  ggplot(., aes(time, value, col = variable)) + 
+  geom_line(lwd =1 ) + scale_color_brewer(palette = "Set2") 
+```
+
+
+
+
+
+
+
