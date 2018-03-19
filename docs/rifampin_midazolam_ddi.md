@@ -92,7 +92,8 @@ aucs <-
   mutate(pAUC = 100*AUC/first(AUC)) %>%
   filter(DAY < 10)
 
-ggplot(aucs, aes(factor(DAY),pAUC)) + geom_col(alpha = 0.6) + 
+ggplot(aucs, aes(factor(DAY),pAUC)) + 
+  geom_col(alpha = 0.6) + 
   geom_hline(yintercept = 70, lty = 2, col = "firebrick") + 
   scale_y_continuous(breaks = seq(0,100,10)) + 
   ggtitle("Auto-induction of rifampicin metabolism")
@@ -239,7 +240,8 @@ summ
     . # ... with 51 more rows
 
 ``` r
-ggplot(summ, aes(rif,pAUC)) + geom_line(lwd = 1) + ylim(0,100) + 
+ggplot(summ, aes(rif,pAUC)) + 
+  geom_line(lwd = 1) + 
   scale_y_continuous(breaks = seq(0,100,10), limits = c(0,100),
                      name = "%Reduction in midazolam AUC after 7d Tx") + 
   scale_x_continuous(name = "Rifampicin dose (mg)", 
