@@ -10,4 +10,5 @@ theme_plain <- function(...) {
 }
 rotx <- function(angle=30) theme(axis.text.x = element_text(angle = angle, hjust = 1))
 roty <- function(angle=30) theme(axis.text.y = element_text(angle = angle, hjust = 1))
+typef <- function(x) factor(x, c(1,2), c("Pitavastatin alone", "Pitavastatin + CsA"))
 
