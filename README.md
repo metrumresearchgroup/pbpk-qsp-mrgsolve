@@ -14,10 +14,18 @@ Content
 
 Please see the reading list below for references for this content
 
+**QSP Models**
+
 -   [ERK inhibition in BRAF(V600E) mutant colorectal cancer](docs/mapk_inhibitors_in_colorectal_cancer.md)
--   [BMD changes under denosumab treatment](docs/OpenBoneMin.md)
+-   [OpenBoneMin: BMD changes under denosumab treatment](docs/OpenBoneMin.md)
+
+**PBPK Models**
+
 -   [PBPK model for rifampicin / midazolam DDI](docs/rifampin_midazolam_ddi.md)
--   [Parameter optimization in PBPK model for OATP DDI](docs/oatp_ddi_optimization.md)
+-   [Parameter optimization in PBPK model for statin/CsA DDI](docs/oatp_ddi_optimization.md)
+
+**Methods**
+
 -   [Global sensitivity analysis](docs/global_sensitivity_analysis.md)
 
 Reading List
