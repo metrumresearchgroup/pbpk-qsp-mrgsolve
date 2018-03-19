@@ -68,7 +68,7 @@ Please see the reading list below for references for this content
 __QSP Models__
 
 - [ERK inhibition in BRAF(V600E) mutant colorectal cancer](docs/mapk_inhibitors_in_colorectal_cancer.md)
-- [OpenBoneMin: BMD changes under denosumab treatment](docs/OpenBoneMin.md)
+- [OpenBoneMin: Bone marker and BMD changes under denosumab therapy](docs/OpenBoneMin.md)
 
 __PBPK Models__
 
