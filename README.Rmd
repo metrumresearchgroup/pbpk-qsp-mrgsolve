@@ -56,12 +56,20 @@ ggplot(simddi, aes(time,Cmidazolam, col = factor(tx))) +
 
 ```
 
-
-
 # Location
 
 - University of Florida - College of Pharmacy (Orlando Lake Nona Campus) 
 - Saturday, 24 March 1:30 pm to 5:30 pm
+
+# Content
+
+Please see the reading list below for references for this content
+
+- [ERK inhibition in BRAF(V600E) mutant colorectal cancer](docs/mapk_inhibitors_in_colorectal_cancer.md)
+- [BMD changes under denosumab treatment](docs/OpenBoneMin.md)
+- [PBPK model for rifampicin / midazolam DDI](docs/rifampicin_midazolam_ddi.md)
+- [Parameter optimization in PBPK model for OATP DDI](docs/oatp_ddi_optimization.md)
+
 
 # Reading List
 
