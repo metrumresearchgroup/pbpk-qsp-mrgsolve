@@ -229,7 +229,7 @@ ggplot(data=df_pred) +
   scale_x_continuous(name="Time (hours)", breaks=seq(0,14,2)) +
   scale_linetype_manual(values= c(2,1),
                         labels=c("Initial estimates", "Final estimates"), name="") +
-  theme(legend.position="top")  + theme_bw()
+  theme_bw() + theme(legend.position="top") 
 ```
 
 ![](img/oatp_ddi_optimization-unnamed-chunk-11-1.png)
@@ -395,7 +395,7 @@ ggplot(data=hxm) +
   geom_line(aes(iteration,value,group=pop),col="darkslateblue") + 
   geom_line(data=bestm,aes(iteration,value),col="orange",lwd=1) + 
   scale_y_continuous(trans="log", breaks=10^seq(-4,4), name="Parameter value") + 
-  facet_wrap(~variable, ncol=2, scales="free_y") 
+  facet_wrap(~variable, ncol=2, scales="free_y") + theme_bw()
 ```
 
 ![](img/oatp_ddi_optimization-unnamed-chunk-16-1.png)
