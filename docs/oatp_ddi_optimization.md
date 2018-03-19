@@ -5,18 +5,15 @@ Metrum Research Group, LLC
 -   [Packages and setup](#packages-and-setup)
 -   [Reference](#reference)
 -   [Data](#data)
--   [The model](#the-model)
+-   [PBPK model: pitavastatin / CsA DDI](#pbpk-model-pitavastatin-csa-ddi)
 -   [Objective function](#objective-function)
     -   [Prediction function](#prediction-function)
 -   [Optimize with different methods](#optimize-with-different-methods)
-    -   [`minqa::newuoa`](#minqanewuoa)
-        -   [Get some predictions to look at how the fit went](#get-some-predictions-to-look-at-how-the-fit-went)
-        -   [Plot](#plot)
-        -   [The final objective function value and estimates](#the-final-objective-function-value-and-estimates)
-    -   [DEoptim](#deoptim)
-        -   [DA for the plot](#da-for-the-plot)
-    -   [Simulated annealing](#simulated-annealing)
-    -   [Particle swarm](#particle-swarm)
+    -   [`minqa::newuoa`: minimization without derivatives](#minqanewuoa-minimization-without-derivatives)
+    -   [`optim`: Nelder-Mead](#optim-nelder-mead)
+    -   [`DEoptim`: differential evolution algorithm](#deoptim-differential-evolution-algorithm)
+    -   [`GenSA`: simulated annealing](#gensa-simulated-annealing)
+    -   [`hydroPSO`: particle swarm optimization](#hydropso-particle-swarm-optimization)
 -   [Compare optimization methods](#compare-optimization-methods)
 
 Packages and setup
@@ -70,7 +67,8 @@ data <- read_csv(data.file) %>%
 ggplot(data=data,aes(time,DV)) + 
   geom_point(col="firebrick") + 
   facet_wrap(~typef) + 
-  scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr())
+  scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr()) + 
+  theme_bw()
 ```
 
 ![](img/oatp_ddi_optimization-unnamed-chunk-4-1.png)
@@ -104,8 +102,8 @@ yobs
 data <-  dplyr::select(data, -typef)
 ```
 
-The model
-=========
+PBPK model: pitavastatin / CsA DDI
+==================================
 
 -   Check out the model / data with a quick simulation
 -   We're only interested in `CP`, the pitavastatin concentration
@@ -133,8 +131,7 @@ wss <- function(dv, pred, par=NULL) {
 }
 ```
 
-Prediction function
--------------------
+### Prediction function
 
 -   Let's go through step by step what each line is doing for us
 
@@ -162,8 +159,8 @@ pred <- function(p, .data, yobs=NULL, pred=FALSE) {
 Optimize with different methods
 ===============================
 
-`minqa::newuoa`
----------------
+`minqa::newuoa`: minimization without derivatives
+-------------------------------------------------
 
 -   These appear to be the parameters that the authors are fitting
 
@@ -232,7 +229,7 @@ ggplot(data=df_pred) +
   scale_x_continuous(name="Time (hours)", breaks=seq(0,14,2)) +
   scale_linetype_manual(values= c(2,1),
                         labels=c("Initial estimates", "Final estimates"), name="") +
-  theme(legend.position="top")
+  theme(legend.position="top")  + theme_bw()
 ```
 
 ![](img/oatp_ddi_optimization-unnamed-chunk-11-1.png)
@@ -252,8 +249,15 @@ exp(fit1$par)
     . fbCLintall       ikiu      fbile         ka        ktr 
     . 0.81525274 0.01094972 0.34383482 0.98892963 0.68965684
 
-DEoptim
--------
+`optim`: Nelder-Mead
+--------------------
+
+``` r
+fit1b <- optim(theta, pred,.data=data, yobs=yobs)
+```
+
+`DEoptim`: differential evolution algorithm
+-------------------------------------------
 
 "Performs evolutionary global optimization via the Differential Evolution algorithm."
 
@@ -394,10 +398,10 @@ ggplot(data=hxm) +
   facet_wrap(~variable, ncol=2, scales="free_y") 
 ```
 
-![](img/oatp_ddi_optimization-unnamed-chunk-15-1.png)
+![](img/oatp_ddi_optimization-unnamed-chunk-16-1.png)
 
-Simulated annealing
--------------------
+`GenSA`: simulated annealing
+----------------------------
 
 ``` r
 set.seed(11001)
@@ -412,8 +416,8 @@ fit3 <- GenSA(NULL, pred, lower, upper, .data = data, yobs = yobs,
     . It: 1, obj value: 6.283132599
     . It: 42, obj value: 0.6860963951
 
-Particle swarm
---------------
+`hydroPSO`: particle swarm optimization
+---------------------------------------
 
 ``` r
 set.seed(2202201)
@@ -427,12 +431,12 @@ Compare optimization methods
 ============================
 
 ``` r
-results <- list(theta, fit1$par,  fit2$optim$bestmem, fit3$par, fit4$par)
+results <- list(theta, fit1$par, fit1b$par, fit2$optim$bestmem, fit3$par, fit4$par)
 
 results <- map(results, exp)
 
 data_frame(
-  method = c("initial", "newuoa", "RcppDE", "SA", "PSO"),
+  method = c("initial", "newuoa", "nelder", "RcppDE", "SA", "PSO"),
   fbCLintall = map_dbl(results, "fbCLintall"), 
   ikiu = map_dbl(results, "ikiu"), 
   fbile = map_dbl(results, "fbile"), 
@@ -445,6 +449,7 @@ data_frame(
 |:--------|-----------:|--------:|-------:|-------:|-------:|
 | initial |      1.2000|  1.20000|  0.9000|  0.1000|  0.1000|
 | newuoa  |      0.8153|  0.01095|  0.3438|  0.9889|  0.6897|
+| nelder  |      0.8387|  0.01056|  0.3572|  0.9904|  0.7114|
 | RcppDE  |      0.8162|  0.01094|  0.3450|  0.9923|  0.6910|
 | SA      |      0.8142|  0.01097|  0.3434|  0.9889|  0.6883|
 | PSO     |      0.8150|  0.01095|  0.3436|  0.9883|  0.6897|

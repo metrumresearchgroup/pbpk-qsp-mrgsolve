@@ -5,6 +5,7 @@ date: ""
 output: 
   github_document:
     toc: true
+    toc_depth: 2
 ---
 
 # Packages and setup
@@ -56,7 +57,8 @@ pitavastatin
 ggplot(data=data,aes(time,DV)) + 
   geom_point(col="firebrick") + 
   facet_wrap(~typef) + 
-  scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr())
+  scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr()) + 
+  theme_bw()
 ```
 
 - Pick out the doses and the observations
@@ -75,7 +77,7 @@ data <-  dplyr::select(data, -typef)
 
 
 
-# The model
+# PBPK model: pitavastatin / CsA DDI
 
 - Check out the model / data with a quick simulation
 - We're only interested in `CP`, the pitavastatin concentration
@@ -100,7 +102,7 @@ wss <- function(dv, pred, par=NULL) {
 }
 ```
 
-## Prediction function
+### Prediction function
 
 - Let's go through step by step what each line is doing for us
 
@@ -128,7 +130,7 @@ pred <- function(p, .data, yobs=NULL, pred=FALSE) {
 
 # Optimize with different methods
 
-## `minqa::newuoa`
+## `minqa::newuoa`: minimization without derivatives
 
 - These appear to be the parameters that the authors are fitting
 
@@ -168,7 +170,7 @@ ggplot(data=df_pred) +
   scale_x_continuous(name="Time (hours)", breaks=seq(0,14,2)) +
   scale_linetype_manual(values= c(2,1),
                         labels=c("Initial estimates", "Final estimates"), name="") +
-  theme(legend.position="top")
+  theme(legend.position="top")  + theme_bw()
 ```
 
 ### The final objective function value and estimates
@@ -178,8 +180,14 @@ pred(fit1$par,.data=data,yobs=yobs)
 exp(fit1$par)
 ```
 
+## `optim`: Nelder-Mead
 
-## DEoptim
+```{r}
+fit1b <- optim(theta, pred,.data=data, yobs=yobs)
+```
+
+## `DEoptim`: differential evolution algorithm
+
 "Performs evolutionary global optimization via the 
 Differential Evolution algorithm."
 
@@ -221,7 +229,7 @@ ggplot(data=hxm) +
 ```
 
 
-## Simulated annealing 
+## `GenSA`: simulated annealing 
 ```{r}
 set.seed(11001)
 
@@ -231,7 +239,7 @@ fit3 <- GenSA(NULL, pred, lower, upper, .data = data, yobs = yobs,
               control = sacontrol)
 ```
 
-## Particle swarm
+## `hydroPSO`: particle swarm optimization
 ```{r}
 set.seed(2202201)
 
@@ -242,12 +250,12 @@ fit4 <- hydroPSO(theta, fn = "pred", lower = lower, upper = upper,
 
 # Compare optimization methods
 ```{r}
-results <- list(theta, fit1$par,  fit2$optim$bestmem, fit3$par, fit4$par)
+results <- list(theta, fit1$par, fit1b$par, fit2$optim$bestmem, fit3$par, fit4$par)
 
 results <- map(results, exp)
 
 data_frame(
-  method = c("initial", "newuoa", "RcppDE", "SA", "PSO"),
+  method = c("initial", "newuoa", "nelder", "RcppDE", "SA", "PSO"),
   fbCLintall = map_dbl(results, "fbCLintall"), 
   ikiu = map_dbl(results, "ikiu"), 
   fbile = map_dbl(results, "fbile"), 
