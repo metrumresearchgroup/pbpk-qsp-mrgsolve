@@ -1,7 +1,3 @@
-$PROB
-https://www.ncbi.nlm.nih.gov/pubmed/28649441
-  
-
 $GLOBAL
 
 //-- #include "global.h"
@@ -12,10 +8,10 @@ double HillEQ(double x, double k, double tau) {
   return a/(pow(tau,k) + a);
 }
 
-// Created: Thu Jul 20 09:33:46 2017
+// Created: Wed Jun 28 11:21:18 2017
 
 $PARAM
-// Created: Thu Jul 20 09:33:46 2017
+// Created: Wed Jun 28 11:21:18 2017
 // Parameters (103)
 RASb   = 0    //   param 0
 RASt   = 1    //   param 1
@@ -122,7 +118,7 @@ Gdusp  = 1    //   param 101
 Gspry  = 1    //   param 102
 
 $INIT
-// Created: Thu Jul 20 09:33:46 2017
+// Created: Wed Jun 28 11:21:18 2017
 // Initial conditions (17)
 TD1         = 0  //   species 6
 CELLS       = 1  //   species 7
@@ -144,7 +140,7 @@ RTK1i_gut   = 0  //   species 32
 
 $ODE
 
-// Created: Thu Jul 20 09:33:46 2017
+// Created: Wed Jun 28 11:21:18 2017
 // RULES (21)
 double RTK1i_C = RTK1i_blood / V1;
 double RAFi_C  = RAFi_blood / V2;
@@ -168,7 +164,7 @@ double PI3K    = PI3Kb + (PI3Kt - PI3Kb) * HillEQ(RTK3 + wRAS * RAS, k7, tau7);
 double AKT     = (AKTb + (AKTt - AKTb) * HillEQ(PI3K, k8, tau8)) * (1 - HillEQ(AKTi, ki5, taui5));
 double S6      = S6b + (S6t - S6b) * HillEQ(wOR * ERK + (1 - wOR) * AKT, k6, tau6);
 
-// Created: Thu Jul 20 09:33:46 2017
+// Created: Wed Jun 28 11:21:18 2017
 // Reactions (22)
 double fb1        = r1 * (ERK - FB1);
 double fb2        = r2 * (ERK - FB2);
@@ -194,7 +190,7 @@ double PK1b_ERKi  = ka4 * (1 - F4) * ERKi_gut;
 double PK1b_AKTi  = ka5 * (1 - F5) * AKTi_gut;
 
 
-// Created: Thu Jul 20 09:33:46 2017
+// Created: Wed Jun 28 11:21:18 2017
 // ODEs (17)
 dxdt_AKTi_blood  =   PK1a_AKTi - PK2_AKTi;
 dxdt_AKTi_gut    = - PK1a_AKTi - PK1b_AKTi;
@@ -214,6 +210,9 @@ dxdt_RTK1i_blood =   PK1a_RTK1i - PK2_RTK1i;
 dxdt_RTK1i_gut   = - PK1a_RTK1i - PK1b_RTK1i;
 dxdt_TD1         =   TD;
 
+$TABLE
+capture TUMOR = CELLS;
+capture GDC = ERKi;
 
-$CAPTURE RAFi_C RTK1i_C MEKi_C ERKi_C AKTi_C AKT S6 ERK
-RTK1 RTK2 RTK3 BRAF CRAF RAS MEK
+$CAPTURE ERKi ERKi_C RAFi MEKi 
+

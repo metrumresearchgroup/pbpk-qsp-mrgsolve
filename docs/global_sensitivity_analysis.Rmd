@@ -1,0 +1,210 @@
+---
+title: Sobol sensitivity analysis
+author: "Metrum Research Group, LLC"
+date: ""
+output:
+  github_document:
+    toc: TRUE
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, 
+                      comment = '.', fig.path = "img/sobol")
+```
+
+
+# Reference / About
+Zhang XY, Trame MN, Lesko LJ, Schmidt S. __Sobol Sensitivity Analysis: A Tool to
+Guide the Development and Evaluation of Systems Pharmacology Models__. CPT
+Pharmacometrics Syst Pharmacol. 2015 Feb;4(2):69-79. doi: 10.1002/psp4.6. PubMed 
+PMID: [27548289](https://www.ncbi.nlm.nih.gov/pubmed/27548289)
+
+This example replicates an analysis presented in the Zhang et al. paper, 
+but here using mrgsolve and other tools available for R.
+
+
+# Tools
+```{r}
+library(mrgsolve)
+library(tidyverse)
+library(PKPDmisc)
+library(sensitivity)
+```
+
+
+
+# The sunitinib PK model
+```{r}
+mod <- mread_cache("sunit", "models") %>% 
+  update(end = 24, delta = 1) %>% zero_re()
+```
+
+```{r}
+see(mod)
+```
+
+## Sunitinib dosing 
+```{r}
+sunev <- function(amt = 50,...) ev(amt = amt, ...)
+```
+
+## Generate samples
+
+Th function generates uniform samples from a 
+100 fold decrease to 100 fold increase in the 
+nominal parameter value.
+
+The return value is a list with two data frames that
+can be passed into the sobol function.
+
+
+```{r}
+gen_samples <- function(n, l, which = names(l), 
+                        factor = c(0.01,100)) {
+  
+  vars <- select_vars(names(l), !!(enquo(which)))
+  
+  l <- as.list(l)[vars]
+  
+  l <- map(l, .f = function(x) x*factor)
+
+  n <- length(l)*n*2
+  
+  df <- as.data.frame(l)
+  
+  len <- length(df)
+  
+  X <- matrix(ncol=len, nrow=n)
+  
+  colnames(X) <- names(df)
+  
+  Y <- X
+  
+  for(i in seq(len)){
+    r <- runif(n, df[1,i], df[2,i])
+    X[,i] <- r
+    r <- runif(n, df[1,i], df[2,i])
+    Y[,i] <- r
+  }
+  
+  return(list(x1 = as.data.frame(X), x2 = as.data.frame(Y)))
+}
+```
+
+## A bunch of helper functions
+
+Simulate a batch of data.  The summary is AUC for each parameter set.
+
+```{r}
+batch_run <- function(x) {
+  mod %>% 
+    idata_set(x) %>%
+    ev(sunev()) %>%
+    mrgsim(obsonly = TRUE) %>% 
+    group_by(ID) %>% 
+    summarise(AUC = auc_partial(time,CP)) %>% 
+    pull(AUC)
+}
+```
+
+
+
+## Run the analysis
+
+### First, generate the samples
+```{r}
+set.seed(88771)
+samp <- gen_samples(6000, param(mod), TVCL:TVVP)
+head(samp$x1)
+dim(samp$x1)
+```
+
+
+### Then, run `sensitivity::sobol2007`
+```{r}
+x <- sobol2007(batch_run, X1=samp$x1, X2=samp$x2, nboot=100)
+```
+
+### Results
+
+```{r}
+plot(x)
+```
+
+```{r}
+x
+```
+
+# The HIV model
+
+```{r}
+bound <- tribble(
+~name , ~lower   , ~upper,
+"s"	  , 1.00E-02 , 50,
+"muT" ,	1.00E-04 , 0.2,
+"r"	  , 1.00E-03 , 50,
+"k1"  ,	1.00E-07 , 1.00E-03,
+"k2"  , 1.00E-05 , 1.00E-02,
+"mub" , 1.00E-01 , 0.4,
+"N"   , 1        , 2000,
+"muV" ,	1.00E-01 , 10
+)
+
+mksamp <- function(bounds, n) {
+  x <- split(bounds,seq(nrow(bounds)))
+  out <- map(x, .f = function(xx) {
+    runif(n, xx$lower[1], xx$upper[1])  
+  })
+  names(out) <- bounds$name
+  return(as_data_frame(out))
+}
+
+set.seed(10010)
+x1 <- as.data.frame(mksamp(bound,8000*nrow(bound)))
+x2 <- as.data.frame(mksamp(bound,8000*nrow(bound)))
+```
+
+
+
+```{r}
+mod <- mread_cache("hiv", "models") %>% 
+  update(end = 2000, delta = 1000, maxsteps = 50000)
+
+hiv_run <- function(x) {
+  
+  out <- mrgsim_i(x = mod, idata = x)
+  
+  out %>% filter(time==2000) %>% pull(AUC)
+}
+```
+
+```{r}
+x <- sobol2007(hiv_run, X1=x1, X2=x2, nboot=100)
+```
+
+
+```{r}
+tot <- x$T %>% mutate(type = "total order",   parameter = names(x1))
+
+first <- x$S %>% mutate(type = "first order", parameter = names(x1))
+
+sum <- bind_rows(tot,first) %>% mutate(ymax = original + 1.96*`std. error`)
+
+ggplot(data = sum, aes(x = parameter, y = original, fill = type)) + 
+  geom_col(position = position_dodge()) + 
+  geom_errorbar(aes(ymin = original, ymax = ymax), position = position_dodge()) + 
+  scale_fill_brewer(palette = "Set2", name = "") + 
+  theme_bw() + ylab("Sensitivity indices") +
+  theme(legend.position = "top") +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1,0.1))
+
+```
+
+
+
+# Session
+```{r}
+devtools::session_info()
+```
+
+
