@@ -18,6 +18,7 @@ Please see the reading list below for references for this content
 -   [BMD changes under denosumab treatment](docs/OpenBoneMin.md)
 -   [PBPK model for rifampicin / midazolam DDI](docs/rifampin_midazolam_ddi.md)
 -   [Parameter optimization in PBPK model for OATP DDI](docs/oatp_ddi_optimization.md)
+-   [Global sensitivity analysis](docs/global_sensitivity_analysis.md)
 
 Reading List
 ============
@@ -34,3 +35,7 @@ Reading List
 -   **Predicting nonlinear changes in bone mineral density over time using a multiscale systems pharmacology model**
     -   Peterson MC, Riggs MM. CPT Pharmacometrics Syst Pharmacol. 2012 Nov 14;1:e14. PMID: 23835796
     -   <https://www.ncbi.nlm.nih.gov/pubmed/23835796>
+-   **Sobol Sensitivity Analysis: A Tool to Guide the Development and Evaluation of Systems Pharmacology Models**
+    -   Zhang XY, Trame MN, Lesko LJ, Schmidt S. . CPT Pharmacometrics Syst Pharmacol. 2015 Feb;4(2):69-79.
+        PMID: 27548289
+    -   <https://www.ncbi.nlm.nih.gov/pubmed/27548289>
