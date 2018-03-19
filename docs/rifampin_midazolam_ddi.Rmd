@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Rifampicin PBPK Model to Predict Complex DDIs"
 output: 
   github_document: 
    toc: true
@@ -11,21 +11,33 @@ knitr::opts_chunk$set(echo = TRUE, comment = '.', warning = FALSE, message = FAL
 ```
 
 ```{r}
-library(mrgsolve)
 library(tidyverse)
+library(mrgsolve)
 library(PKPDmisc)
 theme_set(theme_bw())
 theme_update(legend.position = "top")
 ```
 
-# Rifampin / Midazolam DDI Model
+# Reference
+This model and vignette was derived from this publication
+
+__Comprehensive PBPK Model of Rifampicin for Quantitative Prediction of
+Complex Drug-Drug Interactions: CYP3A/2C9 Induction and OATP Inhibition Effects__
+    - Asaumi R, Toshimoto K, Tobe Y, Hashizume K, Nunoya KI, Imawaka H, Lee W,
+      Sugiyama Y.  CPT Pharmacometrics Syst Pharmacol. 2018 Jan 25. 
+      PMID: 29368402
+      - https://www.ncbi.nlm.nih.gov/pubmed/29368402
+
+
+
+# Rifampin PBPK
 
 ```{r}
 mod <- mread_cache("rifampicin_midazolam", "models", delta = 0.1)
 ```
 
 
-- Single dose
+## Single rifampicin dose
 ```{r}
 rif <- ev(amt = 600)
 rif
@@ -41,7 +53,7 @@ mod %>%
 ```
 
 
-- Multiple dose ... What's going on here?
+## Multiple rifampicin doses
 ```{r}
 rif <- mutate(rif, ii = 24, addl = 9)
 
@@ -51,23 +63,35 @@ out <-
   mod %>%
   ev(rif) %>% 
   mrgsim(end = 240)
-
-plot(out, Ccentral ~ time)
-
 ```
 
-
-- Anything else?
- 
+What is going on here?
 ```{r}
-out %>% 
- mutate(DAY = 1+floor(time/24)) %>%
- group_by(DAY) %>% 
- summarise(AUC = auc_partial(time,Ccentral)) %>% 
- ungroup %>% 
- mutate(pAUC = 100*AUC/first(AUC))
+plot(out, Ccentral ~ time)
 ```
 
+
+Let's investigate
+
+```{r}
+aucs <- 
+  out %>% 
+  mutate(DAY = 1+floor(time/24)) %>%
+  group_by(DAY) %>% 
+  summarise(AUC = auc_partial(time,Ccentral)) %>% 
+  ungroup %>% 
+  mutate(pAUC = 100*AUC/first(AUC)) %>%
+  filter(DAY < 10)
+
+ggplot(aucs, aes(factor(DAY),pAUC)) + geom_col(alpha = 0.6) + 
+  geom_hline(yintercept = 70, lty = 2, col = "firebrick") + 
+  scale_y_continuous(breaks = seq(0,100,10)) + 
+  ggtitle("Auto-induction of rifampicin metabolism")
+```
+
+
+Both `CYP3A4` and `UGT` metabolic activity increased after multiple
+rifampicin doses
 
 ```{r}
 simsm <- 
@@ -76,11 +100,108 @@ simsm <-
   gather(variable, value, c(UGT_ratio_HC5, CYP3A4_ratio_HC5))
 
 simsm %>%
-  ggplot(., aes(time, value, col = variable)) + 
+  ggplot(., aes(time/24, value, col = variable)) + 
   geom_line(lwd =1 ) + scale_color_brewer(palette = "Set2") 
 ```
 
+# PBPK model for rifampicin / midazolam DDI
 
+- Recall that our PBPK model is really a combination of two models:
+one for rifampicin and one for midazolam
+
+
+A single 3 mg midazolam dose
+
+```{r}
+mid <- ev(amt = 3, cmt = 2)
+
+mid
+
+mod %>% mrgsim_e(mid, Req = "Cmidazolam") %>% plot()
+```
+
+Now, a single 3 mg midazolam dose after 7 days of rifampin 75 mg QD
+
+```{r}
+rif <- ev(amt = 75, ii = 24, addl = 6)
+
+rif_mid <- ev_seq(rif, wait = -12, mid)
+
+mid <- filter(rif_mid, cmt==2)
+
+both <- as_data_set(mid, rif_mid)
+
+both
+```
+
+```{r}
+sims <- 
+  mod %>% 
+  mrgsim_d(both, Req="Cmidazolam", end = 166) %>% 
+  filter_sims(time >= 156) %>% 
+  mutate(ID = factor(ID, labels = c("Midazolam", "Midazolam after Rif")))
+
+
+ggplot(sims, aes(time,Cmidazolam,col = factor(ID))) + 
+  geom_line(lwd = 1) + 
+  scale_y_continuous(trans = "log10", limits = c(0.1, 10)) +
+  scale_color_brewer(palette = "Set2")
+```
+
+Midazolam exposure is reduced after rifampicin 75 mg daily x 7d
+
+```{r}
+sims %>% 
+  group_by(ID) %>% 
+  summarise(AUC = auc_partial(time,Cmidazolam)) %>%
+  ungroup() %>%
+  mutate(percent_reduction = 100*(1-last(AUC)/first(AUC)))
+```
+
+## Dose-response for Mid/Rif DDI
+
+Make a function to wrap up the workflow for a single dose
+
+```{r}
+
+sim_ddi <- function(rif_dose, mid_dose = 3) {
+  mid <- ev(amt = mid_dose, cmt = 2)
+  rif <- ev(amt = rif_dose, ii = 24, addl = 6)
+  rif_mid <- ev_seq(rif, wait = -12, mid)
+  
+  mod %>% 
+    mrgsim_e(rif_mid, Req="Cmidazolam", end = 166) %>% 
+    filter_sims(time >= 156) %>%
+    mutate(rif = rif_dose, mid = mid_dose)
+}
+
+
+out <- map_df(seq(0,600,10), .f = sim_ddi)
+```
+
+Summarize the simulations by both rifampicin dose and midazolam dose.  Because
+we simulated the zero rifampicin dose, we get the percent reduction in AUC
+by dividing by the "first" auc in the series
+
+```{r}
+summ <- 
+  out %>%
+  group_by(rif,mid) %>%
+  summarise(auc = auc_partial(time,Cmidazolam)) %>%
+  ungroup() %>%
+  mutate(pAUC = 100*(1-auc/first(auc)))
+
+summ
+```
+
+
+```{r}
+ggplot(summ, aes(rif,pAUC)) + geom_line(lwd = 1) + ylim(0,100) + 
+  scale_y_continuous(breaks = seq(0,100,10), limits = c(0,100),
+                     name = "%Reduction in midazolam AUC after 7d Tx") + 
+  scale_x_continuous(name = "Rifampicin dose (mg)", 
+                     breaks = seq(0,600,100))
+```
 
 
 
