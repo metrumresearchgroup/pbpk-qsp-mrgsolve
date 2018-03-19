@@ -129,22 +129,17 @@ gen_samples <- function(n, l, which = names(l),
 A bunch of helper functions
 ---------------------------
 
-Simulate one chunk of data; not absolutely needed for this; but we might use it if we expand this to run in parallel. Ill keep it around for now.
-
-``` r
-sim_chunk <- function(mod, x) {
-  mrgsim_ei(x = mod, ev = sunev(), idata = x, obsonly = TRUE) %>% 
-    as_data_frame
-}
-```
-
-Simulate a batch of data. The summary is AUC for each individual.
+Simulate a batch of data. The summary is AUC for each parameter set.
 
 ``` r
 batch_run <- function(x) {
-  out <- sim_chunk(mod,x)
-  out <- group_by(out,ID) %>% summarise(AUC = auc_partial(time,CP))
-  return(out$AUC)
+  mod %>% 
+    idata_set(x) %>%
+    ev(sunev()) %>%
+    mrgsim(obsonly = TRUE) %>% 
+    group_by(ID) %>% 
+    summarise(AUC = auc_partial(time,CP)) %>% 
+    pull(AUC)
 }
 ```
 
@@ -154,21 +149,24 @@ Run the analysis
 ### First, generate the samples
 
 ``` r
-samp <- gen_samples(5000, param(mod), TVCL:TVVP)
+set.seed(88771)
+samp <- gen_samples(6000, param(mod), TVCL:TVVP)
 head(samp$x1)
 ```
 
-    .        TVCL      TVVC      TVKA      TVQ      TVVP
-    . 1  470.3465 167221.61  1.296696 176.7494  9184.469
-    . 2 4122.9233  58372.07  7.139740 378.7620 10573.908
-    . 3 2354.3643  65889.67  4.439452 593.9977 46212.609
-    . 4  721.9284 184707.97  5.017216  17.8495 32188.775
-    . 5 2873.9545 148063.02 14.044749 612.0261 35502.699
-    . 6 1774.7220  32258.57  6.293777 633.6885 36695.417
+    .       TVCL      TVVC      TVKA      TVQ      TVVP
+    . 1 2837.253 166875.30 11.013982 108.5520 34567.952
+    . 2 3490.800  14354.07 18.822180 547.8690 50545.862
+    . 3 2097.291 181348.34  9.694288 427.9187 24586.856
+    . 4 2341.387  26875.49 11.256036 698.8196  4460.470
+    . 5 5119.695  99479.77  2.140000 666.6529 45071.206
+    . 6 3456.046  19526.79  9.308946 240.5433  3260.133
 
 ``` r
-inventory(mod,samp$x1)
+dim(samp$x1)
 ```
+
+    . [1] 60000     5
 
 ### Then, run `sensitivity::sobol2007`
 
@@ -182,7 +180,7 @@ x <- sobol2007(batch_run, X1=samp$x1, X2=samp$x2, nboot=100)
 plot(x)
 ```
 
-![](img/sobolunnamed-chunk-11-1.png)
+![](img/sobolunnamed-chunk-10-1.png)
 
 ``` r
 x
@@ -192,23 +190,23 @@ x
     . Call:
     . sobol2007(model = batch_run, X1 = samp$x1, X2 = samp$x2, nboot = 100)
     . 
-    . Model runs: 350000 
+    . Model runs: 420000 
     . 
     . First order indices:
-    .          original          bias   std. error     min. c.i.   max. c.i.
-    . TVCL  0.085838882  0.0199126192 0.0441143979 -0.0180224787 0.133918698
-    . TVVC  0.191944993  0.0434239015 0.0962885847 -0.0248152409 0.293062865
-    . TVKA  0.001143951  0.0003071389 0.0006829297 -0.0005502592 0.001947977
-    . TVQ   0.003989196  0.0019540748 0.0060027274 -0.0139846412 0.009125089
-    . TVVP -0.001326590 -0.0002526999 0.0017139645 -0.0041353560 0.003047321
+    .           original          bias   std. error     min. c.i.   max. c.i.
+    . TVCL  0.1601012111  2.214509e-03 0.0147719664  0.1316449251 0.189595425
+    . TVVC  0.3320740078  2.876393e-03 0.0251520442  0.2830470899 0.379087675
+    . TVKA  0.0010487694 -2.155859e-05 0.0006259874 -0.0003245785 0.002275195
+    . TVQ   0.0051811252 -2.478164e-04 0.0019619628  0.0013627356 0.009513428
+    . TVVP -0.0004045875 -1.257215e-04 0.0009964991 -0.0021085877 0.001548759
     . 
     . Total indices:
-    .         original          bias  std. error    min. c.i.   max. c.i.
-    . TVCL 0.816782732 -0.0420105951 0.095084884  0.713845143 1.040297546
-    . TVVC 0.907902992 -0.0229209022 0.051725029  0.855237055 1.036821618
-    . TVKA 0.003977832  0.0008497423 0.002538587 -0.003030427 0.006825726
-    . TVQ  0.407641426 -0.0851577239 0.228380123  0.136445354 0.809826608
-    . TVVP 0.061394216 -0.0038073713 0.055691691 -0.069727474 0.124147045
+    .        original          bias  std. error    min. c.i.  max. c.i.
+    . TVCL 0.62250758 -0.0034865050 0.017071677  0.592191898 0.66000962
+    . TVVC 0.81936724 -0.0004663454 0.017085775  0.782400067 0.85437849
+    . TVKA 0.01614792 -0.0005697163 0.005517145  0.004259271 0.02703173
+    . TVQ  0.04231475 -0.0017862104 0.047789088 -0.055005315 0.11255199
+    . TVVP 0.02456133  0.0004543576 0.009441657  0.003857844 0.04377317
 
 The HIV model
 =============
@@ -220,9 +218,9 @@ bound <- tribble(
 "muT" , 1.00E-04 , 0.2,
 "r"   , 1.00E-03 , 50,
 "k1"  , 1.00E-07 , 1.00E-03,
-"k2"    , 1.00E-05 , 1.00E-02,
-"mub"   , 1.00E-01 , 0.4,
-"N"   , 1          , 2000,
+"k2"  , 1.00E-05 , 1.00E-02,
+"mub" , 1.00E-01 , 0.4,
+"N"   , 1        , 2000,
 "muV" , 1.00E-01 , 10
 )
 
@@ -272,7 +270,7 @@ ggplot(data = sum, aes(x = parameter, y = original, fill = type)) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1,0.1))
 ```
 
-![](img/sobolunnamed-chunk-16-1.png)
+![](img/sobolunnamed-chunk-15-1.png)
 
 Session
 =======

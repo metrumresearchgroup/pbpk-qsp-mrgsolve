@@ -93,23 +93,17 @@ gen_samples <- function(n, l, which = names(l),
 
 ## A bunch of helper functions
 
-Simulate one chunk of data; not absolutely needed for 
-this; but we might use it if we expand this to run in 
-parallel.  Ill keep it around for now.
+Simulate a batch of data.  The summary is AUC for each parameter set.
 
-```{r}
-sim_chunk <- function(mod, x) {
-  mrgsim_ei(x = mod, ev = sunev(), idata = x, obsonly = TRUE) %>% 
-    as_data_frame
-}
-```
-
-Simulate a batch of data.  The summary is AUC for each individual.
 ```{r}
 batch_run <- function(x) {
-  out <- sim_chunk(mod,x)
-  out <- group_by(out,ID) %>% summarise(AUC = auc_partial(time,CP))
-  return(out$AUC)
+  mod %>% 
+    idata_set(x) %>%
+    ev(sunev()) %>%
+    mrgsim(obsonly = TRUE) %>% 
+    group_by(ID) %>% 
+    summarise(AUC = auc_partial(time,CP)) %>% 
+    pull(AUC)
 }
 ```
 
@@ -119,9 +113,10 @@ batch_run <- function(x) {
 
 ### First, generate the samples
 ```{r}
-samp <- gen_samples(5000, param(mod), TVCL:TVVP)
+set.seed(88771)
+samp <- gen_samples(6000, param(mod), TVCL:TVVP)
 head(samp$x1)
-inventory(mod,samp$x1)
+dim(samp$x1)
 ```
 
 
@@ -149,9 +144,9 @@ bound <- tribble(
 "muT" ,	1.00E-04 , 0.2,
 "r"	  , 1.00E-03 , 50,
 "k1"  ,	1.00E-07 , 1.00E-03,
-"k2"	, 1.00E-05 , 1.00E-02,
-"mub"	, 1.00E-01 , 0.4,
-"N"   ,	1	       , 2000,
+"k2"  , 1.00E-05 , 1.00E-02,
+"mub" , 1.00E-01 , 0.4,
+"N"   , 1        , 2000,
 "muV" ,	1.00E-01 , 10
 )
 
