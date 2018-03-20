@@ -8,12 +8,15 @@ Metrum Research Group, LLC
 -   [Translation](#translation)
 -   [Set up](#set-up)
 -   [Explore](#explore)
-    -   [Simulate with MEK inhibitor](#simulate-with-mek-inhibitor)
+    -   [Simulate with ERK inhibitor GDC-0944](#simulate-with-erk-inhibitor-gdc-0944)
     -   [Sensitivity analysis](#sensitivity-analysis)
 -   [Predicting clinical outcomes for combination therapies](#predicting-clinical-outcomes-for-combination-therapies)
     -   [Generate dosing regimens](#generate-dosing-regimens)
     -   [Simulate all combination therapies](#simulate-all-combination-therapies)
     -   [Summarize and plot](#summarize-and-plot)
+-   [Target populations more likely to respond](#target-populations-more-likely-to-respond)
+    -   [ORR in full population: GDC +/- COBI](#orr-in-full-population-gdc---cobi)
+    -   [ORR in select patients: GDC +/- COBI](#orr-in-select-patients-gdc---cobi)
 
 Reference
 =========
@@ -57,6 +60,7 @@ Set up
 ``` r
 library(mrgsolve)
 library(tidyverse)
+library(parallel)
 source("functions.R")
 ```
 
@@ -73,27 +77,27 @@ dim(vp)
 Load the model and pick one parameter set from vpop
 
 ``` r
-mod <- mread_cache("mapk", "models") %>% update(end  = 56)
+mod <- mread("mapk", "models") %>% update(end  = 56)
 
-mod <- param(mod, filter(vp,VPOP2==24))
+mod <- param(mod, filter(vp,VPOP2==41))
 ```
 
 Explore
 =======
 
-Simulate with MEK inhibitor
----------------------------
+Simulate with ERK inhibitor GDC-0944
+------------------------------------
 
 ``` r
-e <- expand.ev(amt = c(1,5,10,30,60,100), cmt = 10, ii = 1, addl = 20)
+e <- expand.ev(amt = seq(100,600,100), cmt = 12, ii = 1, addl = 20)
 
 e <- ev_seq(e, wait = 7, e) %>% as_data_frame() %>% arrange(ID)
 
 mod %>% 
   data_set(e) %>%
-  Req(TUMOR,MEKi) %>%
+  Req(TUMOR,ERKi) %>%
   mrgsim(delta = 0.25) %>% 
-  plot(MEKi+TUMOR ~ time)
+  plot(ERKi+TUMOR ~ time)
 ```
 
 ![](img/mapk-unnamed-chunk-5-1.png)
@@ -136,11 +140,12 @@ vp %>% select(wOR,dmax) %>%
 ``` r
 library(mrgsolvetk)
 
-ev60 <- filter(e, amt==60) %>% select(-ID) %>% as.ev()
+ev400 <- filter(e, amt==400) %>% select(-ID) %>% as.ev()
 
 mod %>% 
-  ev(ev60) %>% Req(TUMOR) %>%
-  sens_range(wOR = c(0.9,0.99), .n = 10) %>%
+  ev(ev400) %>% Req(TUMOR) %>%
+  sens_range(wOR = c(0.9,1), .n = 8) %>%
+  mutate(value = signif(value,3)) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
 ```
@@ -155,27 +160,15 @@ mod %>%
 
 ``` r
 mod %>% 
-  ev(ev60) %>% Req(TUMOR) %>%
+  ev(ev400) %>% Req(TUMOR) %>%
   select(dmax) %>% 
-  sens_range(.factor = c(0.2, 2), .n = 10) %>%
+  sens_range(.factor = c(0.2, 2), .n = 8) %>%
   mutate(value = signif(value,3)) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
 ```
 
 ![](img/mapk-unnamed-chunk-8-1.png)
-
-``` r
-mod %>% 
-  ev(ev60) %>% Req(TUMOR) %>%
-  select(taui3) %>% 
-  sens_range(.factor = c(0.2, 2), .n = 10) %>%
-  mutate(value = signif(value,3)) %>%
-  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
-  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
-```
-
-![](img/mapk-unnamed-chunk-9-1.png)
 
 Predicting clinical outcomes for combination therapies
 ======================================================
@@ -211,7 +204,7 @@ out <- mrgsim(mod, ev=dataG, end=56)
 plot(out, ERKi_C~time)
 ```
 
-![](img/mapk-unnamed-chunk-12-1.png)
+![](img/mapk-unnamed-chunk-11-1.png)
 
 -   **MEK inhibitor** - cobimetinib (COBI)
 -   Compartment 10
@@ -354,4 +347,49 @@ p1 <-
 p1
 ```
 
-![](img/mapk-unnamed-chunk-20-1.png)
+![](img/mapk-unnamed-chunk-19-1.png)
+
+Target populations more likely to respond
+=========================================
+
+ORR in full population: GDC +/- COBI
+------------------------------------
+
+``` r
+sms %>%
+  filter(label %in% c("GDC", "COBI+GDC")) %>%
+  group_by(label) %>%
+  summarise(orr = mean(TUMOR < 0.7)) %>% 
+  knitr::kable(digits = 3)
+```
+
+| label    |    orr|
+|:---------|------:|
+| COBI+GDC |  0.352|
+| GDC      |  0.140|
+
+ORR in select patients: GDC +/- COBI
+------------------------------------
+
+``` r
+vp_select <- filter(vp, wOR > median(wOR))
+
+re_run <- 
+  sims %>%
+  select(label,object) %>%
+  filter(label %in% c("GDC", "COBI+GDC")) %>% 
+  mutate(out = parallel::mclapply(object,sim,Vp = vp_select,Mod = mod)) %>%
+  select(label, out) %>% 
+  unnest()
+  
+
+re_run %>%
+  group_by(label) %>%
+  summarise(orr = mean(TUMOR < 0.7)) %>% 
+  knitr::kable(digits = 3)
+```
+
+| label    |    orr|
+|:---------|------:|
+| COBI+GDC |  0.705|
+| GDC      |  0.287|

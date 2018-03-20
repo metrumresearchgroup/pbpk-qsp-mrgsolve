@@ -285,7 +285,7 @@ data_frame(
   fbile = map_dbl(results, "fbile"), 
   ka = map_dbl(results, "ka"), 
   ktr = map_dbl(results, "ktr")
-) %>% mutate_if(is.numeric,signif,digits = 4) %>% knitr::kable()
+) %>%  knitr::kable(digits = 4)
 
 ```
 
