@@ -1,5 +1,6 @@
 ---
 title: "Rifampicin PBPK Model to Predict Complex DDIs"
+author: "Metrum Research Group, LLC"
 output: 
   github_document: 
    toc: true
@@ -8,10 +9,10 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment = '.', warning = FALSE, message = FALSE, 
                       fig.path = "img/rifampin_midazolam_ddi-")
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/rifampin/")
 ```
 
 ```{r}
-library(tidyverse)
 library(mrgsolve)
 library(PKPDmisc)
 theme_set(theme_bw())
@@ -155,11 +156,11 @@ Midazolam exposure is reduced after rifampicin 75 mg daily x 7d
 sims %>% 
   group_by(ID) %>% 
   summarise(AUC = auc_partial(time,Cmidazolam)) %>%
-  ungroup() %>%
-  mutate(percent_reduction = 100*(1-last(AUC)/first(AUC)))
+  mutate(percent_reduction = 100*(1-AUC/first(AUC))) %>%
+  knitr::kable()
 ```
 
-## Dose-response for Mid/Rif DDI
+## Dose-response for midazolam/rifampin DDI
 
 Make a function to wrap up the workflow for a single dose
 
@@ -200,9 +201,9 @@ summ
 ggplot(summ, aes(rif,pAUC)) + 
   geom_line(lwd = 1) + 
   scale_y_continuous(breaks = seq(0,100,10), limits = c(0,100),
-                     name = "%Reduction in midazolam AUC after 7d Tx") + 
+                     name = "%Reduction in midazolam AUC after Rif x 7d") + 
   scale_x_continuous(name = "Rifampicin dose (mg)", 
-                     breaks = seq(0,600,100))
+                     breaks = seq(0,600,100)) + theme_bw()
 ```
 
 

@@ -1,15 +1,15 @@
 Rifampicin PBPK Model to Predict Complex DDIs
 ================
+Metrum Research Group, LLC
 
 -   [Reference](#reference)
 -   [Rifampin PBPK](#rifampin-pbpk)
     -   [Single rifampicin dose](#single-rifampicin-dose)
     -   [Multiple rifampicin doses](#multiple-rifampicin-doses)
 -   [PBPK model for rifampicin / midazolam DDI](#pbpk-model-for-rifampicin-midazolam-ddi)
-    -   [Dose-response for Mid/Rif DDI](#dose-response-for-midrif-ddi)
+    -   [Dose-response for midazolam/rifampin DDI](#dose-response-for-midazolamrifampin-ddi)
 
 ``` r
-library(tidyverse)
 library(mrgsolve)
 library(PKPDmisc)
 theme_set(theme_bw())
@@ -180,18 +180,17 @@ Midazolam exposure is reduced after rifampicin 75 mg daily x 7d
 sims %>% 
   group_by(ID) %>% 
   summarise(AUC = auc_partial(time,Cmidazolam)) %>%
-  ungroup() %>%
-  mutate(percent_reduction = 100*(1-last(AUC)/first(AUC)))
+  mutate(percent_reduction = 100*(1-AUC/first(AUC))) %>%
+  knitr::kable()
 ```
 
-    . # A tibble: 2 x 3
-    .   ID                    AUC percent_reduction
-    .   <fct>               <dbl>             <dbl>
-    . 1 Midazolam           24.7               72.3
-    . 2 Midazolam after Rif  6.84              72.3
+| ID                  |        AUC|  percent\_reduction|
+|:--------------------|----------:|-------------------:|
+| Midazolam           |  24.703773|              0.0000|
+| Midazolam after Rif |   6.839165|             72.3153|
 
-Dose-response for Mid/Rif DDI
------------------------------
+Dose-response for midazolam/rifampin DDI
+----------------------------------------
 
 Make a function to wrap up the workflow for a single dose
 
@@ -243,9 +242,9 @@ summ
 ggplot(summ, aes(rif,pAUC)) + 
   geom_line(lwd = 1) + 
   scale_y_continuous(breaks = seq(0,100,10), limits = c(0,100),
-                     name = "%Reduction in midazolam AUC after 7d Tx") + 
+                     name = "%Reduction in midazolam AUC after Rif x 7d") + 
   scale_x_continuous(name = "Rifampicin dose (mg)", 
-                     breaks = seq(0,600,100))
+                     breaks = seq(0,600,100)) + theme_bw()
 ```
 
 ![](img/rifampin_midazolam_ddi-unnamed-chunk-15-1.png)

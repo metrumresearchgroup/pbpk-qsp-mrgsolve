@@ -318,12 +318,14 @@ Get ready to plot
 ``` r
 sms <- select(sims, label, out) %>% unnest()
 
-sms <- mutate(sms, labelf = fct_inorder(label))
+sms <- mutate(sms, 
+              labelf = fct_inorder(label), 
+              gdc = factor(grepl("GDC", label)))
 
 head(sms)
 ```
 
-    . # A tibble: 6 x 27
+    . # A tibble: 6 x 28
     .   label           ID  time   TD1 CELLS   FB1   FB2   FB3   FB4 RTK1i_blood
     .   <chr>        <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>       <dbl>
     . 1 No Treatment    1.   56. 0.998 0.872 0.822 0.822 0.822 0.714          0.
@@ -332,21 +334,23 @@ head(sms)
     . 4 No Treatment    4.   56. 0.995 1.51  0.583 0.583 0.583 0.644          0.
     . 5 No Treatment    5.   56. 0.999 1.43  0.951 0.951 0.951 0.664          0.
     . 6 No Treatment    6.   56. 0.999 1.06  0.940 0.940 0.940 0.731          0.
-    . # ... with 17 more variables: RAFi_gut <dbl>, RAFi_blood <dbl>,
+    . # ... with 18 more variables: RAFi_gut <dbl>, RAFi_blood <dbl>,
     . #   MEKi_gut <dbl>, MEKi_blood <dbl>, ERKi_gut <dbl>, ERKi_blood <dbl>,
     . #   AKTi_gut <dbl>, AKTi_blood <dbl>, MEKi_V3 <dbl>, RTK1i_gut <dbl>,
     . #   ERKi <dbl>, ERKi_C <dbl>, RAFi <dbl>, MEKi <dbl>, TUMOR <dbl>,
-    . #   GDC <dbl>, labelf <fct>
+    . #   GDC <dbl>, labelf <fct>, gdc <fct>
 
 ``` r
 p1 <- 
   ggplot(data=sms) + 
   geom_point(aes(x=labelf, y=TUMOR),position=position_jitter(width=0.15),col="grey") +
+  geom_hline(yintercept=0.7,col="black", lty=1,lwd=0.7)  +
   scale_y_continuous(limits=c(0,2.5),name="Tumor size",breaks=c(0,0.5,1,1.5,2,2.5,3)) +
   scale_x_discrete(name="") + 
-  geom_hline(yintercept=0.7,col="firebrick", lty=1,lwd=1)  +
-  geom_boxplot(aes(x=labelf,y=TUMOR),fill="darkslateblue",col="darkslateblue",alpha=0.2) +
-  theme_plain() + rotx(30)
+  geom_boxplot(aes(x=labelf,y=TUMOR,col=gdc),fill="darkslateblue",alpha=0.2) +
+  scale_color_manual(values = c("darkslateblue", "firebrick"), guide = FALSE) + 
+  theme_plain() + rotx(30) + 
+  ggtitle("Note: GDC-0944 +/- cobimetinib")
 p1
 ```
 

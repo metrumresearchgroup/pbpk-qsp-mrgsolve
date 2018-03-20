@@ -10,6 +10,7 @@ output:
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, 
                       comment = '.', fig.path = "img/sobol")
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/sobol/")
 ```
 
 
