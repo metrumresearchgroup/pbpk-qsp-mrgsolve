@@ -191,7 +191,7 @@ summ <-
   group_by(rif,mid) %>%
   summarise(auc = auc_partial(time,Cmidazolam)) %>%
   ungroup() %>%
-  mutate(pAUC = 100*(1-auc/first(auc)))
+  mutate(pAUC = 100*(auc/first(auc)))
 
 summ
 ```
@@ -201,7 +201,7 @@ summ
 ggplot(summ, aes(rif,pAUC)) + 
   geom_line(lwd = 1) + 
   scale_y_continuous(breaks = seq(0,100,10), limits = c(0,100),
-                     name = "%Reduction in midazolam AUC after Rif x 7d") + 
+                     name = "Midazolam AUC after Rif (% of no-Rif AUC)") + 
   scale_x_continuous(name = "Rifampicin dose (mg)", 
                      breaks = seq(0,600,100)) + theme_bw()
 ```
