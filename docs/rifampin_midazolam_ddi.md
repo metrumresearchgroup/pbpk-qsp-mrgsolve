@@ -181,13 +181,13 @@ sims %>%
   group_by(ID) %>% 
   summarise(AUC = auc_partial(time,Cmidazolam)) %>%
   mutate(percent_reduction = 100*(1-AUC/first(AUC))) %>%
-  knitr::kable()
+  knitr::kable(digits = 2)
 ```
 
-| ID                  |        AUC|  percent\_reduction|
-|:--------------------|----------:|-------------------:|
-| Midazolam           |  24.703773|              0.0000|
-| Midazolam after Rif |   6.839165|             72.3153|
+| ID                  |    AUC|  percent\_reduction|
+|:--------------------|------:|-------------------:|
+| Midazolam           |  24.70|                0.00|
+| Midazolam after Rif |   6.84|               72.32|
 
 Dose-response for midazolam/rifampin DDI
 ----------------------------------------
