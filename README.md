@@ -1,13 +1,13 @@
 Case studies with mrgsolve: PBPK and QSP model implementation and utilization in R
 ================
 
-![](docs/img/README-unnamed-chunk-1-1.png)
-
 Location
 ========
 
 -   University of Florida - College of Pharmacy (Orlando Lake Nona Campus)
 -   Saturday, 24 March 1:30 pm to 5:30 pm
+
+![](docs/img/README-unnamed-chunk-1-1.png)
 
 Content
 =======
