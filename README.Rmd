@@ -84,7 +84,7 @@ out <-
 p2 <- 
   ggplot(out, aes(DAY,AUC_pct)) + 
   geom_col(alpha = 0.6) + theme_bw() + 
-  geom_hline(yintercept = 70, lty = 2, col = "firebrick", lwd = 1) + 
+  geom_hline(yintercept = 70, lty = 2, col = "darkslateblue", lwd = 1) + 
   labs(x = "Daily dose number", y = "AUC (% of day 1 AUC)",
        subtitle = "Autoinduction of rifampin metabolism by CYP3A4") + 
   scale_x_continuous(breaks = seq(1,10,1)) + 
