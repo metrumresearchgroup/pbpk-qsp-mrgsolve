@@ -25,7 +25,7 @@ knitr::opts_chunk$set(fig.path = "docs/img/README-", message = FALSE, warning = 
 Please see the reading list below for references for this content
 
 
-```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 7, fig.width = 8}
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 7, fig.width = 9}
 
 mod <- mread("rifampicin_midazolam", "docs/models") %>% param(WT = 90)
 
