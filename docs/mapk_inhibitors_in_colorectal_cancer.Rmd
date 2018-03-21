@@ -10,7 +10,7 @@ output:
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(comment = '.', fig.path = "img/mapk-", 
                       message = FALSE, warning = FALSE)
-
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/mapk/")
 ```
 
 
@@ -59,6 +59,7 @@ V600E mutant melanoma, but not so much in colorectal cancer
 ```{r}
 library(mrgsolve)
 library(tidyverse)
+library(parallel)
 source("functions.R")
 ```
 
@@ -72,27 +73,27 @@ dim(vp)
 
 Load the model and pick one parameter set from vpop
 ```{r, message = FALSE}
-mod <- mread_cache("mapk", "models") %>% update(end  = 56)
+mod <- mread("mapk", "models") %>% update(end  = 56)
 
-mod <- param(mod, filter(vp,VPOP2==24))
+mod <- param(mod, filter(vp,VPOP2==41))
 ```
 
 
 # Explore
 
 
-## Simulate with MEK inhibitor
+## Simulate with ERK inhibitor GDC-0944
 
-```{r}
-e <- expand.ev(amt = c(1,5,10,30,60,100), cmt = 10, ii = 1, addl = 20)
+```{r, fig.width = 8}
+e <- expand.ev(amt = seq(100,600,100), cmt = 12, ii = 1, addl = 20)
 
 e <- ev_seq(e, wait = 7, e) %>% as_data_frame() %>% arrange(ID)
 
 mod %>% 
   data_set(e) %>%
-  Req(TUMOR,MEKi) %>%
+  Req(TUMOR,ERKi) %>%
   mrgsim(delta = 0.25) %>% 
-  plot(MEKi+TUMOR ~ time)
+  plot(ERKi+TUMOR ~ time)
 ```
 
 ## Sensitivity analysis
@@ -124,11 +125,12 @@ response rates
 ```{r}
 library(mrgsolvetk)
 
-ev60 <- filter(e, amt==60) %>% select(-ID) %>% as.ev()
+ev400 <- filter(e, amt==400) %>% select(-ID) %>% as.ev()
 
 mod %>% 
-  ev(ev60) %>% Req(TUMOR) %>%
-  sens_range(wOR = c(0.9,0.99), .n = 10) %>%
+  ev(ev400) %>% Req(TUMOR) %>%
+  sens_range(wOR = c(0.9,1), .n = 8) %>%
+  mutate(value = signif(value,3)) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
 ```
@@ -144,24 +146,15 @@ cell death rate by 10%
 
 ```{r}
 mod %>% 
-  ev(ev60) %>% Req(TUMOR) %>%
+  ev(ev400) %>% Req(TUMOR) %>%
   select(dmax) %>% 
-  sens_range(.factor = c(0.2, 2), .n = 10) %>%
+  sens_range(.factor = c(0.2, 2), .n = 8) %>%
   mutate(value = signif(value,3)) %>%
   ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
   geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
 ```
 
 
-```{r}
-mod %>% 
-  ev(ev60) %>% Req(TUMOR) %>%
-  select(taui3) %>% 
-  sens_range(.factor = c(0.2, 2), .n = 10) %>%
-  mutate(value = signif(value,3)) %>%
-  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
-  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
-```
 
 
 # Predicting clinical outcomes for combination therapies
@@ -278,21 +271,56 @@ Get ready to plot
 ```{r}
 sms <- select(sims, label, out) %>% unnest()
 
-sms <- mutate(sms, labelf = fct_inorder(label))
+sms <- mutate(sms, 
+              labelf = fct_inorder(label), 
+              gdc = factor(grepl("GDC", label)))
 
 head(sms)
 ```
 
 
-```{r}
+```{r, fig.width = 9}
 p1 <- 
   ggplot(data=sms) + 
   geom_point(aes(x=labelf, y=TUMOR),position=position_jitter(width=0.15),col="grey") +
+  geom_hline(yintercept=0.7,col="black", lty=1,lwd=0.7)  +
   scale_y_continuous(limits=c(0,2.5),name="Tumor size",breaks=c(0,0.5,1,1.5,2,2.5,3)) +
   scale_x_discrete(name="") + 
-  geom_hline(yintercept=0.7,col="firebrick", lty=1,lwd=1)  +
-  geom_boxplot(aes(x=labelf,y=TUMOR),fill="darkslateblue",col="darkslateblue",alpha=0.2) +
-  theme_plain() + rotx(30)
+  geom_boxplot(aes(x=labelf,y=TUMOR,col=gdc),fill="darkslateblue",alpha=0.2) +
+  scale_color_manual(values = c("darkslateblue", "firebrick"), guide = FALSE) + 
+  theme_plain() + rotx(30) + 
+  ggtitle("Note: GDC-0944 +/- cobimetinib")
 p1
+```
+
+# Target populations more likely to respond
+
+## ORR in full population: GDC +/- COBI
+```{r}
+sms %>%
+  filter(label %in% c("GDC", "COBI+GDC")) %>%
+  group_by(label) %>%
+  summarise(orr = mean(TUMOR < 0.7)) %>% 
+  knitr::kable(digits = 3)
+```
+
+## ORR in select patients: GDC +/- COBI
+
+```{r}
+vp_select <- filter(vp, wOR > median(wOR))
+
+re_run <- 
+  sims %>%
+  select(label,object) %>%
+  filter(label %in% c("GDC", "COBI+GDC")) %>% 
+  mutate(out = parallel::mclapply(object,sim,Vp = vp_select,Mod = mod)) %>%
+  select(label, out) %>% 
+  unnest()
+  
+
+re_run %>%
+  group_by(label) %>%
+  summarise(orr = mean(TUMOR < 0.7)) %>% 
+  knitr::kable(digits = 3)
 ```
 

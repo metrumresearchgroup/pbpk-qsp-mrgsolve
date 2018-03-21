@@ -10,12 +10,21 @@ output:
 ```{r global, message = FALSE, echo = FALSE, warning = FALSE}
 library(mrgsolve)
 library(tidyverse)
+library(PKPDmisc)
+library(pmplots)
 knitr::opts_chunk$set(fig.path = "docs/img/README-", message = FALSE, warning = FALSE)
 ```
 
+## Location
 
+- University of Florida - College of Pharmacy (Orlando Lake Nona Campus) 
+- Saturday, 24 March 1:30 pm to 5:30 pm
 
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
+## Case Studies
+
+Please see the reading list below for references for the case studies
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 7, fig.width = 9}
 
 mod <- mread("rifampicin_midazolam", "docs/models") %>% param(WT = 90)
 
@@ -43,27 +52,74 @@ sims <- bind_rows(out1,out2) %>%
 simddi <- filter(sims,time >= 156 & time <= 166) %>%
   mutate(time = time - min(time))
 
-ggplot(simddi, aes(time,Cmidazolam, col = factor(tx))) + 
-  geom_line(lwd = 1.25)  + 
+lab <- tribble(~x, ~y, ~text,
+               1, 0.3, "midazolam after\nrifampin x7d", 
+               1, 7, "midazolam")
+               
+
+p1<- ggplot(simddi) + 
+  geom_line(lwd = 1.25, aes(time,Cmidazolam, col = factor(tx)))  + 
   scale_color_brewer(palette="Set2", name = "") +
   xlab("Time after dose (hours)") + 
-  theme_bw() + theme(legend.position = "top") +
+  theme_bw() + theme(legend.position = "none") +
   scale_x_continuous(breaks=seq(0,10,2)) +
   scale_y_continuous(trans = "log10", 
                      name = "Midazolam concentration (ng/mL)",
                      breaks = 10^seq(-4,4), 
-                     limits = c(0.1, 10))
+                     limits = c(0.1, 10)) + 
+  geom_text(data = lab, aes(x = x, y = y, label = text), hjust = "left", size = 3.5 ) +
+  labs(subtitle = "Rifampin / midazolam DDI")
 
+
+out <- 
+  mod %>%
+  ev(amt = 600, ii = 24, addl = 9) %>%
+  mrgsim(end = 10*24, delta = 0.1) %>%
+  mutate(DAY = floor(time/24)+1) %>%
+  group_by(DAY) %>%
+  summarise(AUC = auc_partial(time,Ccentral)) %>%
+  mutate(AUC_pct = 100*AUC/first(AUC)) %>%
+  filter(DAY <=10)
+
+p2 <- 
+  ggplot(out, aes(DAY,AUC_pct)) + 
+  geom_col(alpha = 0.6) + theme_bw() + 
+  geom_hline(yintercept = 70, lty = 2, col = "firebrick", lwd = 1) + 
+  labs(x = "Daily dose number", y = "AUC (% of day 1 AUC)",
+       subtitle = "Autoinduction of rifampin metabolism by CYP3A4") + 
+  scale_x_continuous(breaks = seq(1,10,1)) + 
+  scale_y_continuous(breaks = seq(0,100,10)) 
+
+
+mod <- mread_cache("mapk", "docs/models")
+vp <- readRDS("docs/data/s10vpop_pk.RDS")
+mod <- update(mod, param = filter(vp,VPOP2==19))
+e <- ev(amt = 400, ii = 1, addl = 20, cmt = 12)
+e <- ev_seq(e, wait = 7, e)
+
+out <-
+  mod %>%
+  ev(e) %>%
+  mrgsim_df(end = 56, delta = 0.1) 
+
+outm <- gather(out, variable, value, c(ERKi, TUMOR))
+
+p3 <- ggplot(outm, aes(time,(value))) + 
+  geom_line(lwd = 1, col = "darkslateblue") + 
+  facet_wrap(~variable, scales = "free_y", ncol = 1) + 
+  theme_bw() + 
+  scale_x_continuous(breaks = seq(0,56,7), name = "Time (days)") + 
+  theme(legend.position = "bottom") + 
+  labs(y = "", subtitle = "ERK inhibtion in colorectal cancer")
+
+
+
+p4 <- readRDS("docs/img/README_osteo.RDS")
+
+mrggsave::mrggpage(list(p1,p2,p3,p4)) %>% mrggsave::mrggdraw()
 ```
 
-# Location
 
-- University of Florida - College of Pharmacy (Orlando Lake Nona Campus) 
-- Saturday, 24 March 1:30 pm to 5:30 pm
-
-# Content
-
-Please see the reading list below for references for this content
 
 __QSP Models__
 
@@ -79,7 +135,7 @@ __Methods__
 
 - [Global sensitivity analysis](docs/global_sensitivity_analysis.md)
 
-# Reading List
+## Reading List
 
 - __Quantitative Analyses of Hepatic OATP-Mediated Interactions Between 
   Statins and Inhibitors Using PBPK Modeling With a Parameter Optimization 

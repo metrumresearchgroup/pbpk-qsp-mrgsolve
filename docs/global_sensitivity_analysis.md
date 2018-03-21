@@ -298,6 +298,7 @@ devtools::session_info()
     .  broom           0.4.3       2017-11-20 CRAN (R 3.4.2)                  
     .  cellranger      1.1.0       2016-07-27 CRAN (R 3.4.0)                  
     .  cli             1.0.0       2017-11-05 cran (@1.0.0)                   
+    .  codetools       0.2-15      2016-10-05 CRAN (R 3.4.2)                  
     .  colorspace      1.3-2       2016-12-14 CRAN (R 3.4.0)                  
     .  compiler        3.4.2       2017-10-04 local                           
     .  crayon          1.3.4       2017-09-16 CRAN (R 3.4.1)                  

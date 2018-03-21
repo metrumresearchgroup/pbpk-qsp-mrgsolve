@@ -27,12 +27,24 @@ library(tidyverse)
 
 ``` r
 library(mrgsolve)
+library(PKPDmisc)
+```
+
+    ## Warning: package 'PKPDmisc' was built under R version 3.4.3
+
+``` r
 library(minqa)
 library(RcppDE)
 library(GenSA)
 library(hydroPSO)
+
 source("functions.R")
+
 set.seed(10101)
+
+theme_set(theme_bw())
+theme_update(legend.position = "top")
+scale_colour_discrete <- function(...) scale_color_brewer(palette="Set2")
 ```
 
 Reference
@@ -67,8 +79,7 @@ data <- read_csv(data.file) %>%
 ggplot(data=data,aes(time,DV)) + 
   geom_point(col="firebrick") + 
   facet_wrap(~typef) + 
-  scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr()) + 
-  theme_bw()
+  scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr()) 
 ```
 
 ![](img/oatp_ddi_optimization-unnamed-chunk-4-1.png)
@@ -109,15 +120,36 @@ PBPK model: pitavastatin / CsA DDI
 -   We're only interested in `CP`, the pitavastatin concentration
 
 ``` r
-mod <- mread("yoshikado","models") %>% 
-  update(end=14, delta=0.1) %>% Req(CP) %>% obsonly()
+mod <- mread_cache("yoshikado","models") %>% 
+  update(end=14, delta=0.1) %>% 
+  Req(CP) %>% 
+  obsonly()
 
-mod %>% 
+sims <- 
+  mod %>% 
   mrgsim(data=dose,obsaug=TRUE) %>% 
-  plot(CP~.,scales=list(y=list(log=TRUE)))
+  mutate(type = typef(ID))
+
+ggplot(sims, aes(time,CP,col=type)) + 
+  geom_line(lwd = 1) + 
+  scale_x_continuous(breaks = seq(0,12,2)) + 
+  scale_y_continuous(trans = "log10", name = "Pitavastatin concentration")
 ```
 
 ![](img/oatp_ddi_optimization-unnamed-chunk-6-1.png)
+
+``` r
+sims %>% 
+  group_by(type) %>% 
+  summarise(auc = auc_partial(time,CP)) %>% 
+  mutate(fold_increase = auc /first(auc))
+```
+
+    . # A tibble: 2 x 3
+    .   type                 auc fold_increase
+    .   <fct>              <dbl>         <dbl>
+    . 1 Pitavastatin alone  44.1          1.00
+    . 2 Pitavastatin + CsA 161.           3.65
 
 Objective function
 ==================
@@ -232,7 +264,7 @@ ggplot(data=df_pred) +
   theme_bw() + theme(legend.position="top") 
 ```
 
-![](img/oatp_ddi_optimization-unnamed-chunk-11-1.png)
+![](img/oatp_ddi_optimization-unnamed-chunk-12-1.png)
 
 ### The final objective function value and estimates
 
@@ -398,7 +430,7 @@ ggplot(data=hxm) +
   facet_wrap(~variable, ncol=2, scales="free_y") + theme_bw()
 ```
 
-![](img/oatp_ddi_optimization-unnamed-chunk-16-1.png)
+![](img/oatp_ddi_optimization-unnamed-chunk-17-1.png)
 
 `GenSA`: simulated annealing
 ----------------------------

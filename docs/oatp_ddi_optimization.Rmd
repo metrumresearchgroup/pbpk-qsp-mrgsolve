@@ -13,17 +13,25 @@ output:
 ```{r, message = FALSE}
 library(tidyverse)
 library(mrgsolve)
+library(PKPDmisc)
 library(minqa)
 library(RcppDE)
 library(GenSA)
 library(hydroPSO)
+
 source("functions.R")
+
 set.seed(10101)
+
+theme_set(theme_bw())
+theme_update(legend.position = "top")
+scale_colour_discrete <- function(...) scale_color_brewer(palette="Set2")
 ```
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(comment = '.', message = FALSE, warning = FALSE) 
 knitr::opts_chunk$set(fig.path = "img/oatp_ddi_optimization-") 
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/optim/")
 ```
 
 # Reference
@@ -57,8 +65,7 @@ pitavastatin
 ggplot(data=data,aes(time,DV)) + 
   geom_point(col="firebrick") + 
   facet_wrap(~typef) + 
-  scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr()) + 
-  theme_bw()
+  scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr()) 
 ```
 
 - Pick out the doses and the observations
@@ -82,14 +89,31 @@ data <-  dplyr::select(data, -typef)
 - Check out the model / data with a quick simulation
 - We're only interested in `CP`, the pitavastatin concentration
 
-```{r, message = FALSE}
-mod <- mread("yoshikado","models") %>% 
-  update(end=14, delta=0.1) %>% Req(CP) %>% obsonly()
+```{r, message = FALSE, cache = FALSE}
+mod <- mread_cache("yoshikado","models") %>% 
+  update(end=14, delta=0.1) %>% 
+  Req(CP) %>% 
+  obsonly()
 
-mod %>% 
+sims <- 
+  mod %>% 
   mrgsim(data=dose,obsaug=TRUE) %>% 
-  plot(CP~.,scales=list(y=list(log=TRUE)))
+  mutate(type = typef(ID))
+
+ggplot(sims, aes(time,CP,col=type)) + 
+  geom_line(lwd = 1) + 
+  scale_x_continuous(breaks = seq(0,12,2)) + 
+  scale_y_continuous(trans = "log10", name = "Pitavastatin concentration")
 ```
+
+```{r}
+sims %>% 
+  group_by(type) %>% 
+  summarise(auc = auc_partial(time,CP)) %>% 
+  mutate(fold_increase = auc /first(auc))
+```
+
+
 
 # Objective function
 
@@ -261,7 +285,7 @@ data_frame(
   fbile = map_dbl(results, "fbile"), 
   ka = map_dbl(results, "ka"), 
   ktr = map_dbl(results, "ktr")
-) %>% mutate_if(is.numeric,signif,digits = 4) %>% knitr::kable()
+) %>%  knitr::kable(digits = 4)
 
 ```
 

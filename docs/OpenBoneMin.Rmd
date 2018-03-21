@@ -10,6 +10,8 @@ output:
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(comment = '.', warning = FALSE, message = FALSE)
 knitr::opts_chunk$set(fig.path = "img/OpenBoneMin-", fig.width = 8)
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/bone/")
+
 ```
 
 # Background and Motivation
@@ -186,6 +188,19 @@ ggplot(out) +
   theme_bw() + theme(legend.position = "top") +
    geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
+
+```{r, echo = FALSE}
+p <- ggplot(out) + 
+  geom_line(aes(x = Month, y = OCchange, col = factor(ID)), lwd = 1) + 
+  facet_wrap(~ID, ncol = 2) + geom_hline(yintercept = 100, lty = 2) +
+  scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) + 
+  theme_bw() + theme(legend.position = "none") +
+   geom_vline(xintercept = c(24,36), lty = 3) + xscale
+
+p <- p + labs(y = "Osteoblasts", color = "", subtitle = "Denosumab for osteoporosis")
+saveRDS(p, file = "img/README_osteo.RDS")
+```
+
 
 ## Publication figure 4: BSAP vs time
 
