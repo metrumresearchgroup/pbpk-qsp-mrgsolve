@@ -20,6 +20,9 @@ knitr::opts_chunk$set(fig.path = "docs/img/README-", message = FALSE, warning = 
 - University of Florida - College of Pharmacy (Orlando Lake Nona Campus) 
 - Saturday, 24 March 1:30 pm to 5:30 pm
 
+# Content
+
+Please see the reading list below for references for this content
 
 
 ```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 7, fig.width = 8}
@@ -118,9 +121,6 @@ mrggsave::mrggpage(list(p1,p2,p3,p4)) %>% mrggsave::mrggdraw()
 ```
 
 
-# Content
-
-Please see the reading list below for references for this content
 
 __QSP Models__
 

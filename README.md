@@ -7,12 +7,12 @@ Location
 -   University of Florida - College of Pharmacy (Orlando Lake Nona Campus)
 -   Saturday, 24 March 1:30 pm to 5:30 pm
 
-![](docs/img/README-unnamed-chunk-1-1.png)
-
 Content
 =======
 
 Please see the reading list below for references for this content
+
+![](docs/img/README-unnamed-chunk-1-1.png)
 
 **QSP Models**
 
