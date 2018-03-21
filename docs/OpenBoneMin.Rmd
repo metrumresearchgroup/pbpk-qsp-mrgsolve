@@ -14,79 +14,10 @@ knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/bone/")
 
 ```
 
-# Background and Motivation
-
-The model was originally developed to describe the bone marker changes associated with denosumab administration from a then ongoing clinical trial. Associated changes in serum calcium and PTH were also considered of interest at the time and so justified the development of a 'systems' model that included bone remodeling and bone mineral (calcium and phosphate) homeostatic mechanisms. Other therapeutics (e.g., teriparatide) and disease states (kidney failure, parathyroid-related abnormalities) were also considered at the time to further inform the parameterization and estimation of the model (Peterson and Riggs, Bone 2010).
-
-# Install from GitHub
-
-```{r,eval = FALSE}
-remotes::install_github("metrumresearchgroup/OpenBoneMin")
-```
-
-```{r}
-library(OpenBoneMin)
-library(tidyverse)
-```
 
 
-# Load the Bone / Mineral model
-```{r}
-mod <- BoneMin()
-```
 
-
-# Teriparatide example
-
-- Teriparatide is a recombinant parathyroid (PTH) hormone, containing only the 
-first 84 amino acid residues
-- Teriparatide doses are administered subcutaneously and are absorbed into
-the PTH compartment; so teriparatide is considered equivalent to PTH 
-- We'll give either 20 or 40 micrograms SQ daily for 10 doses
-```{r}
-out <- sim_teri(dose = c(20,40), dur = 9)
-
-out
-```
-
-PTH profiles for the 20 and 40 microgram doses
-
-```{r}
-plot(out, PTHpm ~ time|ID, scales = "same")
-```
-
-
-Calcium profiles for the 20 and 40 microgram doses
-
-```{r}
-plot(out, CaC~time)
-```
-
-
-# Denosumab example
-
-- Denosumab is a human monoclonal antibody that binds RANK ligand (RANKL), 
-preventing the formation of RANK/RANKL complex and subsequent simulation 
-of osteoclast maturation
-- The labeled dose for treatment of osteoporosis is 60 mg SQ every 6 months
-
-```{r}
-out <- sim_denos(dose = c(14,30,60,210))
-```
-
-Plot the denosumab concentration versus time
-
-```{r}
-plot(out, DENCP ~.,  scales = list(y=list(log = TRUE)), ylim = c(1E-4, 10E5))
-```
-
-Plot the percent change in lumbar spine BMD versus time
-```{r}
-plot(out, BMDlsDENchange ~ .)
-```
-
-# Peterson and Riggs 2012
-
+# Predicting nonlinear BMD changes over time
 
 __Predicting Nonlinear Changes in Bone Mineral Density Over Time Using a 
 Multiscale Systems Pharmacology Model__
@@ -119,12 +50,33 @@ Full Text](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3600731)
 the publication.  This will show the changes in CTx and BSAP and the 
 subsequent changes in BMD under the model.   
 
+## OpenBoneMin model
+
+__Background and Motivation__
+
+The model was originally developed to describe the bone marker changes associated with denosumab administration from a then ongoing clinical trial. Associated changes in serum calcium and PTH were also considered of interest at the time and so justified the development of a 'systems' model that included bone remodeling and bone mineral (calcium and phosphate) homeostatic mechanisms. Other therapeutics (e.g., teriparatide) and disease states (kidney failure, parathyroid-related abnormalities) were also considered at the time to further inform the parameterization and estimation of the model (Peterson and Riggs, Bone 2010).
+
+__Load the model__
+
+
+```{r}
+library(OpenBoneMin)
+library(tidyverse)
+```
+
+
+```{r}
+mod <- BoneMin()
+```
+
+
 ## Generate the dosing regimens
 
 __60 mg every 6 months x 8__
 
 ```{r}
 month <- 24*28
+
 regi <- function(x) factor(x,labels = c("60 mg Q6M", "14 mg Q6M", 
                                         "30 mg Q3M", "210 mg Q6M"))
 xscale <- scale_x_continuous(breaks = c(0,3,6,12,18,24,36,48), limits = c(0,48))
@@ -247,4 +199,68 @@ ggplot(out) +
   theme_bw() + theme(legend.position = "top") + 
   geom_vline(xintercept = c(24,36), lty = 3) + xscale +
   scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225)) 
+```
+
+# Using OpenBoneMin
+
+## Install from GitHub as an R package
+
+```{r,eval = FALSE}
+remotes::install_github("metrumresearchgroup/OpenBoneMin")
+```
+
+
+## Load the OpenBoneMin model
+```{r}
+mod <- BoneMin()
+```
+
+
+## Teriparatide example
+
+- Teriparatide is a recombinant parathyroid (PTH) hormone, containing only the 
+first 84 amino acid residues
+- Teriparatide doses are administered subcutaneously and are absorbed into
+the PTH compartment; so teriparatide is considered equivalent to PTH 
+- We'll give either 20 or 40 micrograms SQ daily for 10 doses
+```{r}
+out <- sim_teri(dose = c(20,40), dur = 9)
+
+out
+```
+
+PTH profiles for the 20 and 40 microgram doses
+
+```{r}
+plot(out, PTHpm ~ time|ID, scales = "same")
+```
+
+
+Calcium profiles for the 20 and 40 microgram doses
+
+```{r}
+plot(out, CaC~time)
+```
+
+
+## Denosumab example
+
+- Denosumab is a human monoclonal antibody that binds RANK ligand (RANKL), 
+preventing the formation of RANK/RANKL complex and subsequent simulation 
+of osteoclast maturation
+- The labeled dose for treatment of osteoporosis is 60 mg SQ every 6 months
+
+```{r}
+out <- sim_denos(dose = c(14,30,60,210))
+```
+
+Plot the denosumab concentration versus time
+
+```{r}
+plot(out, DENCP ~.,  scales = list(y=list(log = TRUE)), ylim = c(1E-4, 10E5))
+```
+
+Plot the percent change in lumbar spine BMD versus time
+```{r}
+plot(out, BMDlsDENchange ~ .)
 ```
