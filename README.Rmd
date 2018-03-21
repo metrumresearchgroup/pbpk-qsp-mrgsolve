@@ -15,15 +15,14 @@ library(pmplots)
 knitr::opts_chunk$set(fig.path = "docs/img/README-", message = FALSE, warning = FALSE)
 ```
 
-### Location
+## Location
 
 - University of Florida - College of Pharmacy (Orlando Lake Nona Campus) 
 - Saturday, 24 March 1:30 pm to 5:30 pm
 
-### Content
+## Case Studies
 
-Please see the reading list below for references for this content
-
+Please see the reading list below for references for the case studies
 
 ```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 7, fig.width = 9}
 
@@ -136,7 +135,7 @@ __Methods__
 
 - [Global sensitivity analysis](docs/global_sensitivity_analysis.md)
 
-### Reading List
+## Reading List
 
 - __Quantitative Analyses of Hepatic OATP-Mediated Interactions Between 
   Statins and Inhibitors Using PBPK Modeling With a Parameter Optimization 

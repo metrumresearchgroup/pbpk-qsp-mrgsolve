@@ -1,14 +1,16 @@
 Case studies with mrgsolve: PBPK and QSP model implementation and utilization in R
 ================
 
-### Location
+Location
+--------
 
 -   University of Florida - College of Pharmacy (Orlando Lake Nona Campus)
 -   Saturday, 24 March 1:30 pm to 5:30 pm
 
-### Content
+Case Studies
+------------
 
-Please see the reading list below for references for this content
+Please see the reading list below for references for the case studies
 
 ![](docs/img/README-unnamed-chunk-1-1.png)
 
@@ -26,7 +28,8 @@ Please see the reading list below for references for this content
 
 -   [Global sensitivity analysis](docs/global_sensitivity_analysis.md)
 
-### Reading List
+Reading List
+------------
 
 -   **Quantitative Analyses of Hepatic OATP-Mediated Interactions Between Statins and Inhibitors Using PBPK Modeling With a Parameter Optimization Method**
     -   Yoshikado T, Yoshida K, Kotani N, Nakada T, Asaumi R, Toshimoto K, Maeda K, Kusuhara H, Sugiyama Y. Clin Pharmacol Ther. 2016 Nov;100(5):513-523. PMID: 27170342
