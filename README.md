@@ -1,11 +1,15 @@
 Case studies with mrgsolve: PBPK and QSP model implementation and utilization in R
 ================
 
-Location
---------
+Where / when
+------------
 
--   University of Florida - College of Pharmacy (Orlando Lake Nona Campus)
--   Saturday, 24 March 1:30 pm to 5:30 pm
+-   **University at Buffalo**
+    -   2018 CDSE Days (Buffalo, NY)
+    -   Tuesday, 10 April 9:30 am to 12:30 pm
+-   **University of Florida**
+    -   College of Pharmacy (Orlando Lake Nona Campus)
+    -   Saturday, 24 March 1:30 pm to 5:30 pm
 
 Case Studies
 ------------
