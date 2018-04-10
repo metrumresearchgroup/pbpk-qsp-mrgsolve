@@ -10,6 +10,7 @@ Metrum Research Group, LLC
     -   [Dose-response for midazolam/rifampin DDI](#dose-response-for-midazolamrifampin-ddi)
 
 ``` r
+library(tidyverse)
 library(mrgsolve)
 library(PKPDmisc)
 theme_set(theme_bw())
@@ -28,7 +29,101 @@ Rifampin PBPK
 
 ``` r
 mod <- mread_cache("rifampicin_midazolam", "models", delta = 0.1)
+mod
 ```
+
+    . 
+    . 
+    . -------- mrgsolve model object (unix) --------
+    .   Project: /Users/kyleb/git...e/docs/models
+    .   source:        rifampicin_midazolam.cpp
+    .   shared object: rifampicin_midazolam-so-3e80550bbdbf 
+    . 
+    .   Time:          start: 0 end: 24 delta: 0.1
+    .   >              add: <none>
+    .   >              tscale: 1
+    . 
+    .   Compartments:  Xgutlumen Mgutlumen central Cmuscle Cskin Cadipose
+    .   >              Cserosa Cmucblood Cent CHE1 CHE2 CHE3
+    .   >              CHE4 CHE5 CHC1 CHC2 CHC3 CHC4
+    .   >              CHC5 mcentral mCmuscle mCskin mCadipose CLIV1
+    .   >              ... [41]
+    .   Parameters:    Rdif beta gamma Km_u_uptake SFKp mSFKp
+    .   >              Emax_UGT_RIF EC50_u_UGT_RIF kdeg_UGT_liver kdeg_UGT_ent fm_UGT_liver fm_UGT_ent
+    .   >              Emax_CYP3A4_RIF EC50_u_CYP3A4_RIF kdeg_CYP3A4_liver kdeg_CYP3A4_ent fm_CYP3A4_liver fm_CYP3A4_ent
+    .   >              mCLperm_gut_kg fB mfB fH fE Fa
+    .   >              ... [61]
+    .   Omega:         0x0 
+    .   Sigma:         0x0 
+    . 
+    .   Solver:        atol: 1e-08 rtol: 1e-08
+    .   >              maxsteps: 2000 hmin: 0 hmax: 0
+
+``` r
+param(mod)
+```
+
+    . 
+    .  Model parameters (N=61):
+    .  name              value  . name           value  . name         value  
+    .  beta              0.2    | kdeg_UGT_liver 0.0158 | Qh_kg        1.24   
+    .  CLrenal_kg        0.011  | Km_u_uptake    0.146  | Qmuscle_kg   0.642  
+    .  EC50_u_CYP3A4_RIF 0.0526 | Kp_adipose     0.0629 | Qportal_kg   0.531  
+    .  EC50_u_UGT_RIF    0.0526 | Kp_muscle      0.0947 | Qserosa_kg   0.274  
+    .  Emax_CYP3A4_RIF   4.57   | Kp_serosa      0.2    | Qskin_kg     0.257  
+    .  Emax_UGT_RIF      1.34   | Kp_skin        0.326  | Qvilli_kg    0.257  
+    .  Fa                1      | mCLperm_gut_kg 0.151  | Rdif         0.129  
+    .  fB                0.0778 | mCLrenal       0      | SFKp         6.65   
+    .  fBCLint_all_kg    0.251  | mFa            1      | Vadipose_kg  0.143  
+    .  fE                0.115  | mfB            0.0545 | Vcentral_kg  0.0743 
+    .  Fg                0.943  | mfBCLint_kg    0.469  | Vent_kg      0.00739
+    .  fH                0.0814 | mfECLint_E_kg  0.107  | VHC_kg       0.0174 
+    .  fm_CYP3A4_ent     1      | mka            1.29   | VHE_kg       0.0067 
+    .  fm_CYP3A4_liver   0.93   | mKp_adipose    34.4   | Vmucblood_kg 0.00099
+    .  fm_UGT_ent        0.759  | mKp_liver      6.96   | Vmuscle_kg   0.429  
+    .  fm_UGT_liver      0.759  | mKp_muscle     4      | Vportal_kg   0.001  
+    .  gamma             0.778  | mKp_skin       20.4   | Vserosa_kg   0.00893
+    .  ka                37.6   | mSFKp          0.201  | Vskin_kg     0.111  
+    .  kdeg_CYP3A4_ent   0.0288 | mVcentral_kg   0.571  | WT           80     
+    .  kdeg_CYP3A4_liver 0.0158 | PSdif_E_kg     0.161  | .            .      
+    .  kdeg_UGT_ent      0.0288 | Qadipose_kg    0.223  | .            .
+
+``` r
+init(mod)
+```
+
+    . 
+    .  Model initial conditions (N=41):
+    .  name           value . name                    value .
+    .  Cadipose (6)   0     | CLIV2 (25)              0     |
+    .  Cent (9)       0     | CLIV3 (26)              0     |
+    .  central (3)    0     | CLIV4 (27)              0     |
+    .  CHC1 (15)      0     | CLIV5 (28)              0     |
+    .  CHC2 (16)      0     | Cmucblood (8)           0     |
+    .  CHC3 (17)      0     | Cmuscle (4)             0     |
+    .  CHC4 (18)      0     | Cportal (29)            0     |
+    .  CHC5 (19)      0     | Cserosa (7)             0     |
+    .  CHE1 (10)      0     | Cskin (5)               0     |
+    .  CHE2 (11)      0     | CYP3A4_ratio_ent (41)   1     |
+    .  CHE3 (12)      0     | CYP3A4_ratio_HC1 (36)   1     |
+    .  CHE4 (13)      0     | CYP3A4_ratio_HC2 (37)   1     |
+    .  CHE5 (14)      0     | CYP3A4_ratio_HC3 (38)   1     |
+    .  CLIV1 (24)     0     | CYP3A4_ratio_HC4 (39)   1     |
+    .  name                    value
+    .  CYP3A4_ratio_HC5 (40)   1    
+    .  mCadipose (23)          0    
+    .  mcentral (20)           0    
+    .  mCmuscle (21)           0    
+    .  mCskin (22)             0    
+    .  Mgutlumen (2)           0    
+    .  UGT_ratio_ent (35)      1    
+    .  UGT_ratio_HC1 (30)      1    
+    .  UGT_ratio_HC2 (31)      1    
+    .  UGT_ratio_HC3 (32)      1    
+    .  UGT_ratio_HC4 (33)      1    
+    .  UGT_ratio_HC5 (34)      1    
+    .  Xgutlumen (1)           0    
+    .  . ...                   .
 
 Single rifampicin dose
 ----------------------
@@ -206,7 +301,25 @@ sim_ddi <- function(rif_dose, mid_dose = 3) {
     mutate(rif = rif_dose, mid = mid_dose)
 }
 
+sim_ddi(600)
+```
 
+    . # A tibble: 102 x 5
+    .       ID  time Cmidazolam   rif   mid
+    .    <dbl> <dbl>      <dbl> <dbl> <dbl>
+    .  1    1.  156.      0.     600.    3.
+    .  2    1.  156.      0.     600.    3.
+    .  3    1.  156.      0.323  600.    3.
+    .  4    1.  156.      0.597  600.    3.
+    .  5    1.  156.      0.758  600.    3.
+    .  6    1.  156.      0.845  600.    3.
+    .  7    1.  156.      0.884  600.    3.
+    .  8    1.  157.      0.893  600.    3.
+    .  9    1.  157.      0.883  600.    3.
+    . 10    1.  157.      0.860  600.    3.
+    . # ... with 92 more rows
+
+``` r
 out <- map_df(seq(0,600,10), .f = sim_ddi)
 ```
 

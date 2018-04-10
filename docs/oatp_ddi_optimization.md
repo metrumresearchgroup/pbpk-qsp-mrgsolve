@@ -77,8 +77,8 @@ data <- read_csv(data.file) %>%
 
 ``` r
 ggplot(data=data,aes(time,DV)) + 
-  geom_point(col="firebrick") + 
-  facet_wrap(~typef) + 
+  geom_point(aes(col = typef), size = 3) + 
+  geom_line(col = "darkgrey", aes(group = typef)) + 
   scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr()) 
 ```
 
@@ -252,14 +252,14 @@ df_obs <- mutate(data, type=typef(type))
 ``` r
 ggplot(data=df_pred) + 
   geom_line(data=df_init,aes(time,CP,lty="A"), col="black", lwd=0.7) +
-  geom_line(aes(time,CP,lty="B"),col="darkslateblue",lwd=0.7) + 
-  geom_point(data=df_obs,aes(time,DV),col="firebrick",size=2) + 
+  geom_line(aes(time,CP,lty="B"),col="black",lwd=0.7) + 
+  geom_point(data=df_obs,aes(time,DV,col=type),size=3) + 
   facet_wrap(~type) + 
   scale_y_continuous(trans="log",breaks=10^seq(-4,4), 
                      limits=c(0.1,100),
                      "Pitavastatin concentration (ng/mL)") +
   scale_x_continuous(name="Time (hours)", breaks=seq(0,14,2)) +
-  scale_linetype_manual(values= c(2,1),
+  scale_linetype_manual(values= c(2,1), guide = FALSE,
                         labels=c("Initial estimates", "Final estimates"), name="") +
   theme_bw() + theme(legend.position="top") 
 ```
@@ -295,7 +295,7 @@ fit1b <- optim(theta, pred,.data=data, yobs=yobs)
 
 ``` r
 lower <- rep(-6,length(theta)) %>% setNames(names(theta))
-upper <- rep(4,length(theta)) %>% setNames(names(theta))
+upper <- rep(4, length(theta)) %>% setNames(names(theta))
 
 set.seed(330303)
 decontrol <- DEoptim.control(NP=10*length(theta), CR=0.925, F=0.85,
@@ -396,19 +396,6 @@ fit2 <- DEoptim(fn=pred, lower=lower,upper=upper, control=decontrol,
     . Iteration: 89 bestvalit: 0.686138 bestmemit:   -0.203138   -4.515033   -1.064251   -0.007690   -0.369566
     . Iteration: 90 bestvalit: 0.686138 bestmemit:   -0.203138   -4.515033   -1.064251   -0.007690   -0.369566
 
-``` r
-data.frame(initial = exp(theta),
-           DE = exp(fit2$optim$bestmem),
-           newuoa  = exp(fit1$par)) %>% signif(3)
-```
-
-    .            initial     DE newuoa
-    . fbCLintall     1.2 0.8160 0.8150
-    . ikiu           1.2 0.0109 0.0109
-    . fbile          0.9 0.3450 0.3440
-    . ka             0.1 0.9920 0.9890
-    . ktr            0.1 0.6910 0.6900
-
 ### DA for the plot
 
 ``` r
@@ -474,14 +461,14 @@ data_frame(
   fbile = map_dbl(results, "fbile"), 
   ka = map_dbl(results, "ka"), 
   ktr = map_dbl(results, "ktr")
-) %>% mutate_if(is.numeric,signif,digits = 4) %>% knitr::kable()
+) %>%  knitr::kable(digits = 4)
 ```
 
-| method  |  fbCLintall|     ikiu|   fbile|      ka|     ktr|
-|:--------|-----------:|--------:|-------:|-------:|-------:|
-| initial |      1.2000|  1.20000|  0.9000|  0.1000|  0.1000|
-| newuoa  |      0.8153|  0.01095|  0.3438|  0.9889|  0.6897|
-| nelder  |      0.8387|  0.01056|  0.3572|  0.9904|  0.7114|
-| RcppDE  |      0.8162|  0.01094|  0.3450|  0.9923|  0.6910|
-| SA      |      0.8142|  0.01097|  0.3434|  0.9889|  0.6883|
-| PSO     |      0.8150|  0.01095|  0.3436|  0.9883|  0.6897|
+| method  |  fbCLintall|    ikiu|   fbile|      ka|     ktr|
+|:--------|-----------:|-------:|-------:|-------:|-------:|
+| initial |      1.2000|  1.2000|  0.9000|  0.1000|  0.1000|
+| newuoa  |      0.8153|  0.0109|  0.3438|  0.9889|  0.6897|
+| nelder  |      0.8387|  0.0106|  0.3572|  0.9904|  0.7114|
+| RcppDE  |      0.8162|  0.0109|  0.3450|  0.9923|  0.6910|
+| SA      |      0.8142|  0.0110|  0.3434|  0.9889|  0.6883|
+| PSO     |      0.8150|  0.0110|  0.3436|  0.9883|  0.6897|

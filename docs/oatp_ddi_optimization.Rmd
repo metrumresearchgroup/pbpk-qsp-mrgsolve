@@ -61,10 +61,10 @@ data <- read_csv(data.file) %>%
 in combination with cyclosporin administered 1 hour before the 
 pitavastatin
 
-```{r, fig.width = 8}
+```{r}
 ggplot(data=data,aes(time,DV)) + 
-  geom_point(col="firebrick") + 
-  facet_wrap(~typef) + 
+  geom_point(aes(col = typef), size = 3) + 
+  geom_line(col = "darkgrey", aes(group = typef)) + 
   scale_y_continuous(trans="log", limits=c(0.1,300), breaks=logbr()) 
 ```
 
@@ -182,17 +182,17 @@ df_obs <- mutate(data, type=typef(type))
 ```
 
 ### Plot
-```{r, fig.width = 8}
+```{r}
 ggplot(data=df_pred) + 
   geom_line(data=df_init,aes(time,CP,lty="A"), col="black", lwd=0.7) +
-  geom_line(aes(time,CP,lty="B"),col="darkslateblue",lwd=0.7) + 
-  geom_point(data=df_obs,aes(time,DV),col="firebrick",size=2) + 
+  geom_line(aes(time,CP,lty="B"),col="black",lwd=0.7) + 
+  geom_point(data=df_obs,aes(time,DV,col=type),size=3) + 
   facet_wrap(~type) + 
   scale_y_continuous(trans="log",breaks=10^seq(-4,4), 
                      limits=c(0.1,100),
                      "Pitavastatin concentration (ng/mL)") +
   scale_x_continuous(name="Time (hours)", breaks=seq(0,14,2)) +
-  scale_linetype_manual(values= c(2,1),
+  scale_linetype_manual(values= c(2,1), guide = FALSE,
                         labels=c("Initial estimates", "Final estimates"), name="") +
   theme_bw() + theme(legend.position="top") 
 ```
@@ -215,9 +215,9 @@ fit1b <- optim(theta, pred,.data=data, yobs=yobs)
 "Performs evolutionary global optimization via the 
 Differential Evolution algorithm."
 
-```{r, eval = TRUE}
+```{r}
 lower <- rep(-6,length(theta)) %>% setNames(names(theta))
-upper <- rep(4,length(theta)) %>% setNames(names(theta))
+upper <- rep(4, length(theta)) %>% setNames(names(theta))
 
 set.seed(330303)
 decontrol <- DEoptim.control(NP=10*length(theta), CR=0.925, F=0.85,
@@ -226,9 +226,6 @@ decontrol <- DEoptim.control(NP=10*length(theta), CR=0.925, F=0.85,
 fit2 <- DEoptim(fn=pred, lower=lower,upper=upper, control=decontrol,
                 .data=data, yobs=yobs)
 
-data.frame(initial = exp(theta),
-           DE = exp(fit2$optim$bestmem),
-           newuoa  = exp(fit1$par)) %>% signif(3)
 ```
 
 ### DA for the plot
@@ -249,7 +246,6 @@ ggplot(data=hxm) +
   geom_line(data=bestm,aes(iteration,value),col="orange",lwd=1) + 
   scale_y_continuous(trans="log", breaks=10^seq(-4,4), name="Parameter value") + 
   facet_wrap(~variable, ncol=2, scales="free_y") + theme_bw()
-
 ```
 
 

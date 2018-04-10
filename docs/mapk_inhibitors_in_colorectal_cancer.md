@@ -62,6 +62,7 @@ library(mrgsolve)
 library(tidyverse)
 library(parallel)
 source("functions.R")
+# mclapply <- lapply
 ```
 
 Read in the virtual population
@@ -199,7 +200,7 @@ dataG <- ev(amt = 400, cmt = 12, ii = 1, addl = 20)
 
 dataG <- seq(dataG, wait = 7, dataG) 
 
-out <- mrgsim(mod, ev=dataG, end=56)
+out <- mrgsim(mod, ev=dataG, end=56, delta  = 0.1)
 
 plot(out, ERKi_C~time)
 ```

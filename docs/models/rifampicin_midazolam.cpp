@@ -99,7 +99,7 @@ mka = 1.29  // 5.51 per hr
 WT  = 80    // Not sure 
 
 [ TABLE ] 
-capture Cmidazolam = 1000*mCcentral;capture Rflux  = 
+capture Cmidazolam = 1000*mCcentral;
 
 [CAPTURE] Ccentral mCcentral
 

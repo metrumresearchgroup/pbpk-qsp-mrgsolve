@@ -11,7 +11,6 @@ output:
 knitr::opts_chunk$set(comment = '.', warning = FALSE, message = FALSE)
 knitr::opts_chunk$set(fig.path = "img/OpenBoneMin-", fig.width = 8)
 knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/bone/")
-
 ```
 
 

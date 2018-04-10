@@ -116,6 +116,7 @@ batch_run <- function(x) {
 ```{r}
 set.seed(88771)
 samp <- gen_samples(6000, param(mod), TVCL:TVVP)
+
 head(samp$x1)
 dim(samp$x1)
 ```
@@ -137,6 +138,22 @@ x
 ```
 
 # The HIV model
+
+
+```{r}
+mod <- mread_cache("hiv", "models") %>% 
+  update(end = 2000, delta = 1000, maxsteps = 50000)
+
+
+out <- mrgsim(mod, 
+              idata = data_frame(N = c(1000,1200,1400)),
+              end = 10*365, delta = 0.1) 
+
+plot(out, V+L+I+TAR~time/365)
+
+
+```
+
 
 ```{r}
 bound <- tribble(
@@ -161,16 +178,14 @@ mksamp <- function(bounds, n) {
 }
 
 set.seed(10010)
-x1 <- as.data.frame(mksamp(bound,8000*nrow(bound)))
-x2 <- as.data.frame(mksamp(bound,8000*nrow(bound)))
+x1 <- as.data.frame(mksamp(bound,4000*nrow(bound)))
+x2 <- as.data.frame(mksamp(bound,4000*nrow(bound)))
 ```
 
 
 
-```{r}
-mod <- mread_cache("hiv", "models") %>% 
-  update(end = 2000, delta = 1000, maxsteps = 50000)
 
+```{r}
 hiv_run <- function(x) {
   
   out <- mrgsim_i(x = mod, idata = x)

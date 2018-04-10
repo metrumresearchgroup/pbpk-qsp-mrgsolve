@@ -151,6 +151,7 @@ Run the analysis
 ``` r
 set.seed(88771)
 samp <- gen_samples(6000, param(mod), TVCL:TVVP)
+
 head(samp$x1)
 ```
 
@@ -212,6 +213,20 @@ The HIV model
 =============
 
 ``` r
+mod <- mread_cache("hiv", "models") %>% 
+  update(end = 2000, delta = 1000, maxsteps = 50000)
+
+
+out <- mrgsim(mod, 
+              idata = data_frame(N = c(1000,1200,1400)),
+              end = 10*365, delta = 0.1) 
+
+plot(out, V+L+I+TAR~time/365)
+```
+
+![](img/sobolunnamed-chunk-12-1.png)
+
+``` r
 bound <- tribble(
 ~name , ~lower   , ~upper,
 "s"   , 1.00E-02 , 50,
@@ -234,14 +249,11 @@ mksamp <- function(bounds, n) {
 }
 
 set.seed(10010)
-x1 <- as.data.frame(mksamp(bound,8000*nrow(bound)))
-x2 <- as.data.frame(mksamp(bound,8000*nrow(bound)))
+x1 <- as.data.frame(mksamp(bound,4000*nrow(bound)))
+x2 <- as.data.frame(mksamp(bound,4000*nrow(bound)))
 ```
 
 ``` r
-mod <- mread_cache("hiv", "models") %>% 
-  update(end = 2000, delta = 1000, maxsteps = 50000)
-
 hiv_run <- function(x) {
   
   out <- mrgsim_i(x = mod, idata = x)
@@ -270,7 +282,7 @@ ggplot(data = sum, aes(x = parameter, y = original, fill = type)) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1,0.1))
 ```
 
-![](img/sobolunnamed-chunk-15-1.png)
+![](img/sobolunnamed-chunk-16-1.png)
 
 Session
 =======
@@ -285,14 +297,14 @@ devtools::session_info()
     .  ui       X11                         
     .  language (EN)                        
     .  collate  en_US.UTF-8                 
-    .  tz       America/Chicago             
-    .  date     2018-03-19                  
+    .  tz       America/New_York            
+    .  date     2018-04-09                  
     . 
     .  package       * version     date       source                          
     .  assertthat      0.2.0       2017-04-11 CRAN (R 3.4.0)                  
     .  backports       1.1.2       2017-12-13 CRAN (R 3.4.2)                  
     .  base          * 3.4.2       2017-10-04 local                           
-    .  bindr           0.1         2016-11-13 CRAN (R 3.4.0)                  
+    .  bindr           0.1.1       2018-03-13 CRAN (R 3.4.4)                  
     .  bindrcpp      * 0.2         2017-06-17 cran (@0.2)                     
     .  boot            1.3-20      2017-08-06 CRAN (R 3.4.2)                  
     .  broom           0.4.3       2017-11-20 CRAN (R 3.4.2)                  
@@ -329,7 +341,7 @@ devtools::session_info()
     .  methods       * 3.4.2       2017-10-04 local                           
     .  mnormt          1.5-5       2016-10-15 CRAN (R 3.4.0)                  
     .  modelr          0.1.1       2017-07-24 CRAN (R 3.4.1)                  
-    .  mrgsolve      * 0.8.10.9010 2018-03-19 local                           
+    .  mrgsolve      * 0.8.10.9014 2018-04-07 local                           
     .  munsell         0.4.3       2016-02-13 CRAN (R 3.4.0)                  
     .  nlme            3.1-131.1   2018-02-16 CRAN (R 3.4.2)                  
     .  parallel        3.4.2       2017-10-04 local                           
