@@ -1,6 +1,6 @@
 ---
 title: "Clinical responses to ERK inhibition in BRAF{V600E}-mutant colorectal cancer"
-author: "Metrum Research Group, LLC"
+author: "Metrum Research Group"
 date: ""
 output: 
   github_document:
@@ -36,11 +36,11 @@ and ERK
 
 - BRAF and MEK inhibitors were found to be effective in 
 V600E mutant melanoma, but not so much in colorectal cancer
-    - Could resistance to BRAF inhibitors be mediated through 
-      EGFR signalling through RAS and CRAF?
-    - What about inhibition at ERK?
-    - Could the effectiveness of different combination therapies be predicted
-      with a model characterizing this biology?
+- Could resistance to BRAF inhibitors be mediated through 
+EGFR signalling through RAS and CRAF?
+- What about inhibition at ERK?
+- Could the effectiveness of different combination therapies be predicted
+with a model characterizing this biology?
 
 ## Cast of characters
 - __vemurafenib__: BRAF inhibitor (selective for V600E mutant)
@@ -53,15 +53,17 @@ V600E mutant melanoma, but not so much in colorectal cancer
 - Model published as SBML
 - Translator from previous project work using R bindings to libSBML
 - Minor modifications to the translator code to
-  accommodate the MAPK model as published
+accommodate the MAPK model as published
 
 # Set up
 ```{r}
 library(mrgsolve)
 library(tidyverse)
 library(parallel)
+library(mrgsim.sa)
+library(future.apply)
+library(future.callr)
 source("functions.R")
-# mclapply <- lapply
 ```
 
 Read in the virtual population
@@ -74,10 +76,11 @@ dim(vp)
 ```
 
 Load the model and pick one parameter set from vpop
-```{r, message = FALSE}
-mod <- mread("mapk", "models") %>% update(end  = 56)
 
-mod <- param(mod, filter(vp,VPOP2==41))
+```{r, message = FALSE}
+mod <- mread("mapk", "models", soloc = "build") %>% update(end  = 56)
+
+mod <- param(mod, filter(vp, VPOP2==41))
 ```
 
 
@@ -87,9 +90,9 @@ mod <- param(mod, filter(vp,VPOP2==41))
 ## Simulate with ERK inhibitor GDC-0944
 
 ```{r, fig.width = 8}
-e <- expand.ev(amt = seq(100,600,100), cmt = 12, ii = 1, addl = 20)
+e <- expand.ev(amt = seq(100,600,100), cmt = 12, ii = 1, addl = 20) %>% as.ev()
 
-e <- ev_seq(e, wait = 7, e) %>% as_data_frame() %>% arrange(ID)
+e <- ev_seq(e, wait = 7, e) %>% as_tibble() %>% arrange(ID)
 
 mod %>% 
   data_set(e) %>%
@@ -104,7 +107,7 @@ mod %>%
 The authors note two parameters that are particularly influential with 
 respect to response rates:
 
-- wOR: MAPK pathway dependence parameter
+- `wOR`: MAPK pathway dependence parameter
 - $\delta_{max}$: the maximum cell death rate
 
 
@@ -118,23 +121,22 @@ vp %>% select(wOR,dmax) %>%
 __Sensitivity analysis on MAPK pathway dependence__
 
 - Given the other parameters for this virtual patient, whenever 
-wOR falls below 90% or so, you get no change in tumor size
+`wOR` falls below 90% or so, you get no change in tumor size
 
 - The authors discuss the possibility of looking for biomarkers that would 
 indicate a patient is showing high dependence on MAPK signalling to improve
 response rates
 
 ```{r}
-library(mrgsolvetk)
-
+#| warning: false
 ev400 <- filter(e, amt==400) %>% select(-ID) %>% as.ev()
 
 mod %>% 
-  ev(ev400) %>% Req(TUMOR) %>%
-  sens_range(wOR = c(0.9,1), .n = 8) %>%
-  mutate(value = signif(value,3)) %>%
-  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
-  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
+  ev(ev400) %>% 
+  Req(TUMOR) %>%
+  parseq_range(wOR = c(0.9,1.05), .n = 8) %>%
+  sens_each() %>% 
+  sens_plot("TUMOR")
 ```
 
 
@@ -147,16 +149,14 @@ parameter value for this virtual patient
 cell death rate by 10%
 
 ```{r}
+#| warning: false
 mod %>% 
-  ev(ev400) %>% Req(TUMOR) %>%
-  select(dmax) %>% 
-  sens_range(.factor = c(0.2, 2), .n = 8) %>%
-  mutate(value = signif(value,3)) %>%
-  ggplot(aes(time, TUMOR, col = factor(value), group = value)) + 
-  geom_line(lwd = 1) + geom_hline(yintercept = 1, lty = 2) + theme_bw()
+  ev(ev400) %>% 
+  Req(TUMOR) %>%
+  parseq_fct(dmax, .n = 8) %>%
+  sens_each() %>% 
+  sens_plot("TUMOR")
 ```
-
-
 
 
 # Predicting clinical outcomes for combination therapies
@@ -186,7 +186,7 @@ dataG <- ev(amt = 400, cmt = 12, ii = 1, addl = 20)
 
 dataG <- seq(dataG, wait = 7, dataG) 
 
-out <- mrgsim(mod, ev=dataG, end=56, delta  = 0.1)
+out <- mrgsim(mod, ev = dataG, end = 56, delta = 0.1)
 
 plot(out, ERKi_C~time)
 ```
@@ -195,13 +195,13 @@ plot(out, ERKi_C~time)
 - __MEK inhibitor__ - cobimetinib (COBI)
 - Compartment 10
 ```{r}
-dataCO <- mutate(dataG,amt=60,cmt=10)
+dataCO <- mutate(dataG, amt=60, cmt=10)
 ```
 
 - __EGFR inihbitor__ - cetuximab (CETUX)
 - Compartment 7
 ```{r}
-dataCE <- ev(cmt=7,ii=7,addl=7,amt=450)
+dataCE <- ev(cmt=7, ii=7, addl=7, amt=450)
 ```
 
 
@@ -215,20 +215,20 @@ comb <- function(...) {
   bind_rows(x) %>% arrange(time)
 }
 
-sim <- function(Data,Vp,Mod) {
+sim <- function(Data, Vp, Mod) {
   Mod %>%
     ev(as.ev(Data)) %>%
-    mrgsim(idata=Vp,end=-1, add = 56) %>%
+    mrgsim(idata=Vp, end=-1, add = 56) %>%
     filter(time==56) 
 }
 ```
 
-For example
+For example, to dose cetuximab with vemurafanib, we'd do
 
 ```{r}
-comb(dataCE,dataV)
+comb(dataCE, dataV)
 
-sim(comb(dataCE,dataV), Vp = slice(vp,seq(10)), Mod = mod)
+sim(comb(dataCE,dataV), Vp = slice(vp, seq(10)), Mod = mod)
 ```
 
 
@@ -256,26 +256,33 @@ sims <-
     "CETUX+COBI+GDC",      comb(dataCE, dataCO,dataG), 
     "VEMU+COBI+GDC",       comb(dataV, dataCO,dataG),
     "CETUX+VEMU+COBI+GDC", comb(dataCE, dataV, dataCO, dataG)
-  ) %>% mutate(object = map(object,as.data.frame))
+  ) %>% mutate(object = map(object, as.data.frame))
 
 ```
 
 
 Run the simulation
 
-```{r}
-sims <- mutate(sims, out = parallel::mclapply(object,sim, Vp = vp, Mod = mod))
+```{r simulate}
+plan(multisession, workers = 5L)
+
+sims <- mutate(
+  sims, 
+  out = future_lapply(object, sim, Vp = vp, Mod = mod, future.seed = TRUE),
+)
 ```
 
 ## Summarize and plot
 
 Get ready to plot
 ```{r}
-sms <- select(sims, label, out) %>% unnest()
+sms <- select(sims, label, out) %>% unnest(cols = c(out))
 
-sms <- mutate(sms, 
-              labelf = fct_inorder(label), 
-              gdc = factor(grepl("GDC", label)))
+sms <- mutate(
+  sms, 
+  labelf = fct_inorder(label), 
+  gdc = factor(grepl("GDC", label))
+)
 
 head(sms)
 ```
@@ -289,15 +296,17 @@ p1 <-
   scale_y_continuous(limits=c(0,2.5),name="Tumor size",breaks=c(0,0.5,1,1.5,2,2.5,3)) +
   scale_x_discrete(name="") + 
   geom_boxplot(aes(x=labelf,y=TUMOR,col=gdc),fill="darkslateblue",alpha=0.2) +
-  scale_color_manual(values = c("darkslateblue", "firebrick"), guide = FALSE) + 
+  scale_color_manual(values = c("darkslateblue", "firebrick"), guide = "none") + 
   theme_plain() + rotx(30) + 
   ggtitle("Note: GDC-0944 +/- cobimetinib")
+
 p1
 ```
 
 # Target populations more likely to respond
 
 ## ORR in full population: GDC +/- COBI
+
 ```{r}
 sms %>%
   filter(label %in% c("GDC", "COBI+GDC")) %>%
@@ -308,18 +317,32 @@ sms %>%
 
 ## ORR in select patients: GDC +/- COBI
 
+- We filter down to those with `wOR` greater than the median
+
 ```{r}
 vp_select <- filter(vp, wOR > median(wOR))
+```
+
+And resimulate
+
+```{r resimulate with select population}
+plan(sequential)
+plan(multisession, workers = 5L)
 
 re_run <- 
   sims %>%
-  select(label,object) %>%
+  select(label, object) %>%
   filter(label %in% c("GDC", "COBI+GDC")) %>% 
-  mutate(out = parallel::mclapply(object,sim,Vp = vp_select,Mod = mod)) %>%
+  mutate(
+    out = future_lapply(object,sim,Vp=vp_select,Mod=mod,future.seed = TRUE)
+  ) %>%
   select(label, out) %>% 
-  unnest()
-  
+  unnest(cols = c(out))
+```
 
+Now, response rates are up
+
+```{r}
 re_run %>%
   group_by(label) %>%
   summarise(orr = mean(TUMOR < 0.7)) %>% 
