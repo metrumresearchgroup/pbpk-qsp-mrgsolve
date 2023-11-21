@@ -4,9 +4,9 @@ cancer
 Metrum Research Group
 
 - [Reference](#reference)
-  - [Introduction](#introduction)
+- [Introduction](#introduction)
   - [Cast of characters](#cast-of-characters)
-- [Translation](#translation)
+  - [Translation](#translation)
 - [Set up](#set-up)
 - [Explore](#explore)
   - [Simulate with ERK inhibitor
@@ -37,7 +37,7 @@ cancer predicted using a computational model**
 - npj Systems Biology and Applications (2017) 3:14 ; <doi:10.1038> /
   s41540-017-0016-1
 
-## Introduction
+# Introduction
 
 (Summarized from Introduction in the reference)
 
@@ -62,7 +62,7 @@ cancer predicted using a computational model**
 - **cetuximab**: EGFR antibody
 - **GDC-0994**: ERK inhibitor (the star)
 
-# Translation
+## Translation
 
 - Model published as SBML
 - Translator from previous project work using R bindings to libSBML
