@@ -52,8 +52,8 @@ with a model characterizing this biology?
 
 - Model published as SBML
 - Translator from previous project work using R bindings to libSBML
-- Minor modifications to the translator code to
-accommodate the MAPK model as published
+- Minor modifications to the translator code to accommodate the MAPK model as 
+  published
 
 # Set up
 ```{r}
@@ -62,7 +62,6 @@ library(tidyverse)
 library(parallel)
 library(mrgsim.sa)
 library(future.apply)
-library(future.callr)
 source("functions.R")
 ```
 
@@ -104,8 +103,8 @@ mod %>%
 ## Sensitivity analysis
 
 
-The authors note two parameters that are particularly influential with 
-respect to response rates:
+The authors note two parameters that are particularly influential with respect 
+to response rates:
 
 - `wOR`: MAPK pathway dependence parameter
 - $\delta_{max}$: the maximum cell death rate

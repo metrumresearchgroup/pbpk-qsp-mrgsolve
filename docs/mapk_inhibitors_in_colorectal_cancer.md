@@ -77,7 +77,6 @@ library(tidyverse)
 library(parallel)
 library(mrgsim.sa)
 library(future.apply)
-library(future.callr)
 source("functions.R")
 ```
 
