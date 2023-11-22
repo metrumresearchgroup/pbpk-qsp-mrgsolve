@@ -7,10 +7,21 @@ output:
     toc: true
 ---
 
-```{r, echo = FALSE}
-knitr::opts_chunk$set(comment = '.', fig.path = "img/mapk-", 
-                      message = FALSE, warning = FALSE)
-knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/mapk/")
+```{r, echo = FALSE, message = FALSE}
+library(here)
+
+knitr::opts_chunk$set(
+  comment = '.', 
+  fig.path = here("docs/img/mapk-"), 
+  cache.path = here("docs/cache/mapk/"),
+  message = FALSE, 
+  warning = FALSE,
+  cache = TRUE, 
+  autodep = TRUE 
+)
+
+options(ggplot2.discrete.colour = RColorBrewer::brewer.pal(name = "Dark2", n = 8))
+options(ggplot2.discrete.fill = RColorBrewer::brewer.pal(name = "Dark2", n = 8))
 ```
 
 
@@ -53,7 +64,7 @@ with a model characterizing this biology?
 - Model published as SBML
 - Translator from previous project work using R bindings to libSBML
 - Minor modifications to the translator code to accommodate the MAPK model as 
-  published
+published
 
 # Set up
 ```{r}
@@ -62,13 +73,14 @@ library(tidyverse)
 library(parallel)
 library(mrgsim.sa)
 library(future.apply)
-source("functions.R")
+library(knitr)
+source(here("docs/functions.R"))
 ```
 
 Read in the virtual population
 
 ```{r}
-vp <- readRDS("data/s10vpop_pk.RDS") %>% mutate(VPOP2 = seq(n()))
+vp <- readRDS(here("docs/data/s10vpop_pk.RDS")) %>% mutate(VPOP2 = seq(n()))
 
 dim(vp)
 
@@ -77,7 +89,7 @@ dim(vp)
 Load the model and pick one parameter set from vpop
 
 ```{r, message = FALSE}
-mod <- mread("mapk", "models", soloc = "build") %>% update(end  = 56)
+mod <- mread("mapk", here("docs/models"), soloc = here("docs/build"), end = 56) 
 
 mod <- param(mod, filter(vp, VPOP2==41))
 ```
@@ -95,9 +107,8 @@ e <- ev_seq(e, wait = 7, e) %>% as_tibble() %>% arrange(ID)
 
 mod %>% 
   data_set(e) %>%
-  Req(TUMOR,ERKi) %>%
   mrgsim(delta = 0.25) %>% 
-  plot(ERKi+TUMOR ~ time)
+  plot(ERKi + TUMOR ~ time)
 ```
 
 ## Sensitivity analysis
@@ -111,9 +122,11 @@ to response rates:
 
 
 ```{r}
-vp %>% select(wOR,dmax) %>%
+vp %>% 
+  select(wOR,dmax) %>%
   map(quantile, probs = seq(0,1,0.1)) %>% 
-  bind_cols() %>% mutate(pctile = seq(0,1,0.1))
+  bind_cols() %>% 
+  mutate(pctile = seq(0,1,0.1))
 ```
 
 
@@ -169,13 +182,13 @@ mod %>%
 - __No treatment__
 
 ```{r}
-data0 <- ev(amt=0, cmt=8)
+data0 <- ev(amt = 0, cmt = 8)
 ```
 
 - __BRAF inhibitor__ - vemurafanib (VEMU)
 - Compartment 8
 ```{r}
-dataV <- ev(amt=960,  cmt=8, ii=0.5, addl=120)
+dataV <- ev(amt = 960, cmt = 8, ii = 0.5, addl = 120)
 ```
 
 - __ERK inhibitor__ - GCD-994 (GDC)
@@ -194,13 +207,13 @@ plot(out, ERKi_C~time)
 - __MEK inhibitor__ - cobimetinib (COBI)
 - Compartment 10
 ```{r}
-dataCO <- mutate(dataG, amt=60, cmt=10)
+dataCO <- mutate(dataG, amt = 60, cmt = 10)
 ```
 
 - __EGFR inihbitor__ - cetuximab (CETUX)
 - Compartment 7
 ```{r}
-dataCE <- ev(cmt=7, ii=7, addl=7, amt=450)
+dataCE <- ev(cmt = 7, ii = 7, addl = 7, amt = 450)
 ```
 
 
@@ -214,10 +227,10 @@ comb <- function(...) {
   bind_rows(x) %>% arrange(time)
 }
 
-sim <- function(Data, Vp, Mod) {
-  Mod %>%
-    ev(as.ev(Data)) %>%
-    mrgsim(idata=Vp, end=-1, add = 56) %>%
+sim <- function(d, m, v) {
+  m %>%
+    ev(as.ev(d)) %>%
+    mrgsim(idata = v, end = -1, add = 56) %>%
     filter(time==56) 
 }
 ```
@@ -227,7 +240,7 @@ For example, to dose cetuximab with vemurafanib, we'd do
 ```{r}
 comb(dataCE, dataV)
 
-sim(comb(dataCE,dataV), Vp = slice(vp, seq(10)), Mod = mod)
+sim(d = comb(dataCE,dataV), m = mod, v = slice(vp, seq(10)))
 ```
 
 
@@ -267,7 +280,7 @@ plan(multisession, workers = 5L)
 
 sims <- mutate(
   sims, 
-  out = future_lapply(object, sim, Vp = vp, Mod = mod, future.seed = TRUE),
+  out = future_lapply(X = object, FUN = sim, v = vp, m = mod, future.seed = TRUE),
 )
 ```
 
@@ -311,7 +324,7 @@ sms %>%
   filter(label %in% c("GDC", "COBI+GDC")) %>%
   group_by(label) %>%
   summarise(orr = mean(TUMOR < 0.7)) %>% 
-  knitr::kable(digits = 3)
+  kable(digits = 3)
 ```
 
 ## ORR in select patients: GDC +/- COBI
@@ -333,7 +346,7 @@ re_run <-
   select(label, object) %>%
   filter(label %in% c("GDC", "COBI+GDC")) %>% 
   mutate(
-    out = future_lapply(object,sim,Vp=vp_select,Mod=mod,future.seed = TRUE)
+    out = future_lapply(object, sim, v = vp_select, m = mod, future.seed = TRUE)
   ) %>%
   select(label, out) %>% 
   unnest(cols = c(out))
@@ -345,6 +358,6 @@ Now, response rates are up
 re_run %>%
   group_by(label) %>%
   summarise(orr = mean(TUMOR < 0.7)) %>% 
-  knitr::kable(digits = 3)
+  kable(digits = 3)
 ```
 

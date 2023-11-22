@@ -1,16 +1,26 @@
 ---
 title: A multiscale systems model of bone health and mineral homeostasis
-author: "Metrum Research Group, LLC"
+author: "Metrum Research Group"
 date: ""
 output: 
   github_document:
     toc: true
 ---
 
-```{r, echo = FALSE}
-knitr::opts_chunk$set(comment = '.', warning = FALSE, message = FALSE)
-knitr::opts_chunk$set(fig.path = "img/OpenBoneMin-", fig.width = 8)
-knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/bone/")
+```{r, echo = FALSE, message = FALSE}
+library(here)
+knitr::opts_chunk$set(
+  comment = '.', 
+  warning = FALSE, 
+  message = FALSE, 
+  fig.path = here("docs/img/OpenBoneMin-"),
+  cache.path = here("docs/cache/bone/"),
+  fig.width = 8, 
+  cache = TRUE, autodep = TRUE
+)
+
+options(ggplot2.discrete.colour = RColorBrewer::brewer.pal(name = "Dark2", n = 8))
+options(ggplot2.discrete.fill = RColorBrewer::brewer.pal(name = "Dark2", n = 8))
 ```
 
 
@@ -28,39 +38,51 @@ Full Text](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3600731)
 
 
 - Bone is constantly being remodeled, constantly turning over.  This remodeling 
-  process consists of breaking down old bone and building up new bone
-    - *Osteoclasts* are cells that function to disassemble bone (resorption) and 
-      *osteoblasts* are cells that function to synthesize or build new bone
-    - One therapeutic strategy for osteoporosis (porous bone) is to inhibit 
-      osteoclast activity and thus inhibit the bone resorption  activity  
-    - __Denosumab__ decreases osteoclast activity by preventing maturation of
-      pre-osteoclasts into fully-functional osteoclast cells
+process consists of breaking down old bone and building up new bone
+- *Osteoclasts* are cells that function to disassemble bone (resorption) and 
+*osteoblasts* are cells that function to synthesize or build new bone
+- One therapeutic strategy for osteoporosis (porous bone) is to inhibit 
+osteoclast activity and thus inhibit the bone resorption  activity  
+- __Denosumab__ decreases osteoclast activity by preventing maturation of
+pre-osteoclasts into fully-functional osteoclast cells
 
 - The goal of the modeling was to predict nonlinear changes in lumbar spine (LS)
-  bone mineral density (BMD) over 48 months of denosumab treatment under
-  different dosing regimens. 
+bone mineral density (BMD) over 48 months of denosumab treatment under
+different dosing regimens. 
 
 - __LSBMD__ was modeled as a function of bone turnover markers
-     - CTx: C-telopeptide, a marker for osteoclast function
-     - BSAP: bone-specific alkaline phosphatase, a marker for osteoblast 
-       function
+- CTx: C-telopeptide, a marker for osteoclast function
+- BSAP: bone-specific alkaline phosphatase, a marker for osteoblast 
+function
 
 - Our __simulation objective__ is to recreate figures 3, 4, 5, and 6 from 
 the publication.  This will show the changes in CTx and BSAP and the 
 subsequent changes in BMD under the model.   
 
-## OpenBoneMin model
+## `OpenBoneMin` model
 
 __Background and Motivation__
 
-The model was originally developed to describe the bone marker changes associated with denosumab administration from a then ongoing clinical trial. Associated changes in serum calcium and PTH were also considered of interest at the time and so justified the development of a 'systems' model that included bone remodeling and bone mineral (calcium and phosphate) homeostatic mechanisms. Other therapeutics (e.g., teriparatide) and disease states (kidney failure, parathyroid-related abnormalities) were also considered at the time to further inform the parameterization and estimation of the model (Peterson and Riggs, Bone 2010).
+The model was originally developed to describe the bone marker changes 
+associated with denosumab administration from a then ongoing clinical trial. 
+Associated changes in serum calcium and PTH were also considered of interest 
+at the time and so justified the development of a 'systems' model that included 
+bone remodeling and bone mineral (calcium and phosphate) homeostatic mechanisms. 
+Other therapeutics (e.g., teriparatide) and disease states (kidney failure, 
+parathyroid-related abnormalities) were also considered at the time to further 
+inform the parameterization and estimation of the model (Peterson and Riggs, 
+Bone 2010).
 
 __Load the model__
+
+We will use the `OpenBoneMin` package to simulate. See below for details on 
+installing this package from GitHub.
 
 
 ```{r}
 library(OpenBoneMin)
 library(tidyverse)
+theme_set(theme_bw() + theme(legend.position = "top"))
 ```
 
 
@@ -76,9 +98,12 @@ __60 mg every 6 months x 8__
 ```{r}
 month <- 24*28
 
-regi <- function(x) factor(x,labels = c("60 mg Q6M", "14 mg Q6M", 
-                                        "30 mg Q3M", "210 mg Q6M"))
-xscale <- scale_x_continuous(breaks = c(0,3,6,12,18,24,36,48), limits = c(0,48))
+regi <- function(x) factor(x, labels = c("60 mg Q6M", "14 mg Q6M", 
+                                         "30 mg Q3M", "210 mg Q6M"))
+xscale <- scale_x_continuous(
+  breaks = c(0, 3, 6, 12, 18, 24, 36, 48), 
+  limits = c(0, 48)
+)
 ```
 
 ```{r}
@@ -89,9 +114,10 @@ e1
 
 __14 mg every 6 months x4, then 60 mg every 6 months x4__
 ```{r}
-e2 <- 
-  mutate(e1, amt = 14, addl = 3) %then% 
+e2 <- ev_seq(
+  mutate(e1, amt = 14, addl = 3),
   mutate(e1, addl = 3)
+)
 e2
 ```
 
@@ -100,7 +126,7 @@ on month 36__
 
 ```{r}
 e3a <- ev(amt = 30, ii = 3*month, addl = 7)
-e3b <- mutate(e1, addl = 1)
+e3b <- mutate(e1, addl = 1) %>% as.ev()
 e3 <- seq(e3a, wait = 12*month, e3b)
 e3
 ```
@@ -115,7 +141,7 @@ e4
 
 __Create one single data set from which to simulate__
 ```{r}
-data <- as_data_set(e1,e2,e3,e4)
+data <- as_data_set(e1, e2, e3, e4)
 
 data
 ```
@@ -134,22 +160,24 @@ Shown here is the percent change from baseline value for osteoclasts (via CTx)
 ```{r}
 ggplot(out) + 
   geom_line(aes(x = Month, y = OCchange, col = factor(ID)), lwd = 1) + 
-  facet_grid(~ID) + geom_hline(yintercept = 100, lty = 2) +
-  scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) + 
-  theme_bw() + theme(legend.position = "top") +
-   geom_vline(xintercept = c(24,36), lty = 3) + xscale
+  facet_grid(~ID) + 
+  geom_hline(yintercept = 100, lty = 2) +
+  scale_y_log10(breaks = c(10,30,100,300), limits = c(5,300)) + 
+  geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
 ```{r, echo = FALSE}
-p <- ggplot(out) + 
+p <- 
+  ggplot(out) + 
   geom_line(aes(x = Month, y = OCchange, col = factor(ID)), lwd = 1) + 
-  facet_wrap(~ID, ncol = 2) + geom_hline(yintercept = 100, lty = 2) +
-  scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) + 
-  theme_bw() + theme(legend.position = "none") +
-   geom_vline(xintercept = c(24,36), lty = 3) + xscale
+  geom_hline(yintercept = 100, lty = 2) +
+  facet_wrap(~ID, ncol = 2) + 
+  scale_y_log10(breaks = c(10,30,100,300), limits = c(5,300)) + 
+  theme(legend.position = "none") +
+  geom_vline(xintercept = c(24,36), lty = 3) + xscale
 
 p <- p + labs(y = "Osteoblasts", color = "", subtitle = "Denosumab for osteoporosis")
-saveRDS(p, file = "img/README_osteo.RDS")
+# saveRDS(p, file = "img/README_osteo.RDS")
 ```
 
 
@@ -160,9 +188,9 @@ Shown here is the percent change from baseline value for osteoblasts (via BSAP)
 ```{r}
 ggplot(out) + 
   geom_line(aes(x = Month, y = OBchange, col = factor(ID)), lwd = 1) + 
-  facet_grid(~ID) + geom_hline(yintercept = 100, lty = 2) +
-  scale_y_continuous(trans = "log10", breaks = c(10,30,100,300), limits = c(5,300)) +
-  theme_bw() + theme(legend.position = "top") + 
+  geom_hline(yintercept = 100, lty = 2) +
+  facet_grid(~ID) + 
+  scale_y_log10(breaks = c(10,30,100,300), limits = c(5,300)) +
   geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
@@ -173,9 +201,8 @@ Shown here is the percent change from baseline value for lumbar spine BMD
 ```{r}
 ggplot(out) + 
   geom_line(aes(x = Month, y = BMDlsDENchange, col = factor(ID)), lwd = 1) + 
-  facet_grid(~ID) + 
-  theme_bw() + theme(legend.position = "top") + 
-  geom_vline(xintercept = c(24,36), lty = 3) + xscale
+   geom_vline(xintercept = c(24,36), lty = 3) +
+  facet_grid(~ID) + xscale
 ``` 
 
 
@@ -195,12 +222,15 @@ ggplot(out) +
   geom_line(aes(x = Month, y = ATGF, col = factor(ID)), lwd = 1) + 
   geom_line(aes(x = Month, y = LTGF), col = "black", lty = 2, lwd = 0.6) + 
   facet_grid(~ID) + 
-  theme_bw() + theme(legend.position = "top") + 
   geom_vline(xintercept = c(24,36), lty = 3) + xscale +
   scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225)) 
 ```
 
-# Using OpenBoneMin
+
+# Using `OpenBoneMin`
+
+This section goes over how to get and use `OpenBoneMin`.
+
 
 ## Install from GitHub as an R package
 
@@ -208,8 +238,8 @@ ggplot(out) +
 remotes::install_github("metrumresearchgroup/OpenBoneMin")
 ```
 
-
 ## Load the OpenBoneMin model
+
 ```{r}
 mod <- BoneMin()
 ```
@@ -243,20 +273,19 @@ plot(out, CaC~time)
 
 
 ## Denosumab example
-
 - Denosumab is a human monoclonal antibody that binds RANK ligand (RANKL), 
 preventing the formation of RANK/RANKL complex and subsequent simulation 
 of osteoclast maturation
 - The labeled dose for treatment of osteoporosis is 60 mg SQ every 6 months
 
 ```{r}
-out <- sim_denos(dose = c(14,30,60,210))
+out <- sim_denos(dose = c(14,30,60,210)) %>% filter_sims(DENCP > 1e-3)
 ```
 
 Plot the denosumab concentration versus time
 
 ```{r}
-plot(out, DENCP ~.,  scales = list(y=list(log = TRUE)), ylim = c(1E-4, 10E5))
+plot(out, DENCP ~.,  scales = list(y = list(log = TRUE)))
 ```
 
 Plot the percent change in lumbar spine BMD versus time

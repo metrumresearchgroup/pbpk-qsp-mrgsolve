@@ -77,13 +77,14 @@ library(tidyverse)
 library(parallel)
 library(mrgsim.sa)
 library(future.apply)
-source("functions.R")
+library(knitr)
+source(here("docs/functions.R"))
 ```
 
 Read in the virtual population
 
 ``` r
-vp <- readRDS("data/s10vpop_pk.RDS") %>% mutate(VPOP2 = seq(n()))
+vp <- readRDS(here("docs/data/s10vpop_pk.RDS")) %>% mutate(VPOP2 = seq(n()))
 
 dim(vp)
 ```
@@ -93,7 +94,7 @@ dim(vp)
 Load the model and pick one parameter set from vpop
 
 ``` r
-mod <- mread("mapk", "models", soloc = "build") %>% update(end  = 56)
+mod <- mread("mapk", here("docs/models"), soloc = here("docs/build"), end = 56) 
 
 mod <- param(mod, filter(vp, VPOP2==41))
 ```
@@ -109,12 +110,11 @@ e <- ev_seq(e, wait = 7, e) %>% as_tibble() %>% arrange(ID)
 
 mod %>% 
   data_set(e) %>%
-  Req(TUMOR,ERKi) %>%
   mrgsim(delta = 0.25) %>% 
-  plot(ERKi+TUMOR ~ time)
+  plot(ERKi + TUMOR ~ time)
 ```
 
-![](img/mapk-unnamed-chunk-5-1.png)<!-- -->
+![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-5-1.png)<!-- -->
 
 ## Sensitivity analysis
 
@@ -125,9 +125,11 @@ respect to response rates:
 - $\delta_{max}$: the maximum cell death rate
 
 ``` r
-vp %>% select(wOR,dmax) %>%
+vp %>% 
+  select(wOR,dmax) %>%
   map(quantile, probs = seq(0,1,0.1)) %>% 
-  bind_cols() %>% mutate(pctile = seq(0,1,0.1))
+  bind_cols() %>% 
+  mutate(pctile = seq(0,1,0.1))
 ```
 
     . # A tibble: 11 × 3
@@ -165,7 +167,7 @@ mod %>%
   sens_plot("TUMOR")
 ```
 
-![](img/mapk-unnamed-chunk-7-1.png)<!-- -->
+![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-7-1.png)<!-- -->
 
 **Sensitivity analysis on $\delta_{max}$**
 
@@ -184,7 +186,7 @@ mod %>%
   sens_plot("TUMOR")
 ```
 
-![](img/mapk-unnamed-chunk-8-1.png)<!-- -->
+![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-8-1.png)<!-- -->
 
 # Predicting clinical outcomes for combination therapies
 
@@ -195,14 +197,14 @@ mod %>%
 - **No treatment**
 
 ``` r
-data0 <- ev(amt=0, cmt=8)
+data0 <- ev(amt = 0, cmt = 8)
 ```
 
 - **BRAF inhibitor** - vemurafanib (VEMU)
 - Compartment 8
 
 ``` r
-dataV <- ev(amt=960,  cmt=8, ii=0.5, addl=120)
+dataV <- ev(amt = 960, cmt = 8, ii = 0.5, addl = 120)
 ```
 
 - **ERK inhibitor** - GCD-994 (GDC)
@@ -218,20 +220,20 @@ out <- mrgsim(mod, ev = dataG, end = 56, delta = 0.1)
 plot(out, ERKi_C~time)
 ```
 
-![](img/mapk-unnamed-chunk-11-1.png)<!-- -->
+![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-11-1.png)<!-- -->
 
 - **MEK inhibitor** - cobimetinib (COBI)
 - Compartment 10
 
 ``` r
-dataCO <- mutate(dataG, amt=60, cmt=10)
+dataCO <- mutate(dataG, amt = 60, cmt = 10)
 ```
 
 - **EGFR inihbitor** - cetuximab (CETUX)
 - Compartment 7
 
 ``` r
-dataCE <- ev(cmt=7, ii=7, addl=7, amt=450)
+dataCE <- ev(cmt = 7, ii = 7, addl = 7, amt = 450)
 ```
 
 We create two functions: one to combine dosing regimens and the other to
@@ -243,10 +245,10 @@ comb <- function(...) {
   bind_rows(x) %>% arrange(time)
 }
 
-sim <- function(Data, Vp, Mod) {
-  Mod %>%
-    ev(as.ev(Data)) %>%
-    mrgsim(idata=Vp, end=-1, add = 56) %>%
+sim <- function(d, m, v) {
+  m %>%
+    ev(as.ev(d)) %>%
+    mrgsim(idata = v, end = -1, add = 56) %>%
     filter(time==56) 
 }
 ```
@@ -262,7 +264,7 @@ comb(dataCE, dataV)
     . 2    0 960 0.5  120   8    1
 
 ``` r
-sim(comb(dataCE,dataV), Vp = slice(vp, seq(10)), Mod = mod)
+sim(d = comb(dataCE,dataV), m = mod, v = slice(vp, seq(10)))
 ```
 
     . # A tibble: 10 × 25
@@ -317,7 +319,7 @@ plan(multisession, workers = 5L)
 
 sims <- mutate(
   sims, 
-  out = future_lapply(object, sim, Vp = vp, Mod = mod, future.seed = TRUE),
+  out = future_lapply(X = object, FUN = sim, v = vp, m = mod, future.seed = TRUE),
 )
 ```
 
@@ -366,7 +368,7 @@ p1 <-
 p1
 ```
 
-![](img/mapk-unnamed-chunk-18-1.png)<!-- -->
+![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-18-1.png)<!-- -->
 
 # Target populations more likely to respond
 
@@ -377,7 +379,7 @@ sms %>%
   filter(label %in% c("GDC", "COBI+GDC")) %>%
   group_by(label) %>%
   summarise(orr = mean(TUMOR < 0.7)) %>% 
-  knitr::kable(digits = 3)
+  kable(digits = 3)
 ```
 
 | label    |   orr |
@@ -404,7 +406,7 @@ re_run <-
   select(label, object) %>%
   filter(label %in% c("GDC", "COBI+GDC")) %>% 
   mutate(
-    out = future_lapply(object,sim,Vp=vp_select,Mod=mod,future.seed = TRUE)
+    out = future_lapply(object, sim, v = vp_select, m = mod, future.seed = TRUE)
   ) %>%
   select(label, out) %>% 
   unnest(cols = c(out))
@@ -416,7 +418,7 @@ Now, response rates are up
 re_run %>%
   group_by(label) %>%
   summarise(orr = mean(TUMOR < 0.7)) %>% 
-  knitr::kable(digits = 3)
+  kable(digits = 3)
 ```
 
 | label    |   orr |

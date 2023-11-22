@@ -1,43 +1,81 @@
-Sobol sensitivity analysis
+Sobol sensitivity analysis using sensobol
 ================
-Metrum Research Group, LLC
+Metrum Research Group
 
--   [Reference / About](#reference-about)
--   [Tools](#tools)
--   [The sunitinib PK model](#the-sunitinib-pk-model)
-    -   [Sunitinib dosing](#sunitinib-dosing)
-    -   [Generate samples](#generate-samples)
-    -   [A bunch of helper functions](#a-bunch-of-helper-functions)
-    -   [Run the analysis](#run-the-analysis)
-        -   [First, generate the samples](#first-generate-the-samples)
-        -   [Then, run `sensitivity::sobol2007`](#then-run-sensitivitysobol2007)
-        -   [Results](#results)
--   [The HIV model](#the-hiv-model)
--   [Session](#session)
+- [Reference / About](#reference--about)
+- [Introduction](#introduction)
+- [Tools](#tools)
+- [The sunitinib PK model](#the-sunitinib-pk-model)
+  - [Sunitinib dosing](#sunitinib-dosing)
+- [Generate samples](#generate-samples)
+- [Run the analysis](#run-the-analysis)
+  - [Simulation](#simulation)
+  - [Calculate AUC](#calculate-auc)
+  - [Indices](#indices)
+  - [Visualize](#visualize)
 
-Reference / About
-=================
+# Reference / About
 
-Zhang XY, Trame MN, Lesko LJ, Schmidt S. **Sobol Sensitivity Analysis: A Tool to Guide the Development and Evaluation of Systems Pharmacology Models**. CPT Pharmacometrics Syst Pharmacol. 2015 Feb;4(2):69-79. doi: 10.1002/psp4.6. PubMed PMID: [27548289](https://www.ncbi.nlm.nih.gov/pubmed/27548289)
+Zhang XY, Trame MN, Lesko LJ, Schmidt S. **Sobol Sensitivity Analysis: A
+Tool to Guide the Development and Evaluation of Systems Pharmacology
+Models**. CPT Pharmacometrics Syst Pharmacol. 2015 Feb;4(2):69-79. doi:
+10.1002/psp4.6. PubMed PMID:
+[27548289](https://www.ncbi.nlm.nih.gov/pubmed/27548289)
 
-This example replicates an analysis presented in the Zhang et al. paper, but here using mrgsolve and other tools available for R.
+This example replicates an analysis presented in the Zhang et al. paper,
+but here using mrgsolve and other tools available for R.
 
-Tools
-=====
+**NOTE**: This example uses the `sensobol` package to run the analysis.
+This is my preferred package for global sensitivity analysis. You can
+see the same analysis run with `sensitivity` here: [sobol.md](sobol.md).
+
+# Introduction
+
+This vignette shows you how to to Sobol sensitivity analysis, a form of
+global sensitivity analysis. In this type of analysis, we look at the
+relationship between variability in input parameters and variability in
+model outputs when model parameters are all varied together across the
+plausible parameter space. This is in contrast to local sensitivity
+analysis, where parameters are perturbed one at a time by small amounts.
+
+To do Sobol sensitivity analysis, we will need the following
+
+1.  A model with some parameters to manipulate
+2.  A (large) set of random parameter values covering a certain section
+    of the plausible (or reasonable) parameter space
+3.  An intervention of interest (e.g. a dose)
+4.  A model output, summarized as a single value, that depends on the
+    intervention and the value of the manipulated parameters (e.g. AUC
+    for a PK model)
+5.  Calculate sensitivity indices, which summarize the relationships
+    between input parameters and model outputs
+6.  Visualization or presentation of the indices
+
+# Tools
 
 ``` r
 library(mrgsolve)
 library(tidyverse)
-library(PKPDmisc)
-library(sensitivity)
+library(data.table)
+library(sensobol)
+library(mrgmisc)
 ```
 
-The sunitinib PK model
-======================
+Install `mrgmisc`
 
 ``` r
-mod <- mread_cache("sunit", "models") %>% 
-  update(end = 24, delta = 1) %>% zero_re()
+install.packages(
+  "mrgmisc", 
+  repos = "https://mpn.metworx.com/snapshots/stable/2023-10-19"
+)
+```
+
+# The sunitinib PK model
+
+``` r
+mod <- mread("sunit", here("docs/models")) %>% 
+  update(end = 24, delta = 0.5, outvars = "CP") %>% 
+  zero_re()
 ```
 
 ``` r
@@ -79,300 +117,208 @@ see(mod)
     . $POST
     . capture CP = (1000*CENT/V2);
 
-Sunitinib dosing
-----------------
+## Sunitinib dosing
+
+We are just looking at a single dose for now.
 
 ``` r
 sunev <- function(amt = 50,...) ev(amt = amt, ...)
 ```
 
-Generate samples
-----------------
+# Generate samples
 
-Th function generates uniform samples from a 100 fold decrease to 100 fold increase in the nominal parameter value.
-
-The return value is a list with two data frames that can be passed into the sobol function.
+**Number**: sample size of the base sample matrix
 
 ``` r
-gen_samples <- function(n, l, which = names(l), 
-                        factor = c(0.01,100)) {
-  
-  vars <- select_vars(names(l), !!(enquo(which)))
-  
-  l <- as.list(l)[vars]
-  
-  l <- map(l, .f = function(x) x*factor)
-
-  n <- length(l)*n*2
-  
-  df <- as.data.frame(l)
-  
-  len <- length(df)
-  
-  X <- matrix(ncol=len, nrow=n)
-  
-  colnames(X) <- names(df)
-  
-  Y <- X
-  
-  for(i in seq(len)){
-    r <- runif(n, df[1,i], df[2,i])
-    X[,i] <- r
-    r <- runif(n, df[1,i], df[2,i])
-    Y[,i] <- r
-  }
-  
-  return(list(x1 = as.data.frame(X), x2 = as.data.frame(Y)))
-}
+N <- 2 ^ 15
 ```
 
-A bunch of helper functions
----------------------------
+**Generate**
 
-Simulate a batch of data. The summary is AUC for each parameter set.
+Generate the parameter sets.
 
 ``` r
-batch_run <- function(x) {
-  mod %>% 
-    idata_set(x) %>%
-    ev(sunev()) %>%
-    mrgsim(obsonly = TRUE) %>% 
-    group_by(ID) %>% 
-    summarise(AUC = auc_partial(time,CP)) %>% 
-    pull(AUC)
-}
+mat <- sobol_matrices(N = N, params = c("TVCL", "TVVC", "TVKA", "TVQ", "TVVP"))
+head(mat)
 ```
 
-Run the analysis
-----------------
+    .       TVCL  TVVC  TVKA   TVQ  TVVP
+    . [1,] 0.500 0.500 0.500 0.500 0.500
+    . [2,] 0.750 0.250 0.750 0.250 0.750
+    . [3,] 0.250 0.750 0.250 0.750 0.250
+    . [4,] 0.375 0.375 0.625 0.125 0.875
+    . [5,] 0.875 0.875 0.125 0.625 0.375
+    . [6,] 0.625 0.125 0.375 0.375 0.125
 
-### First, generate the samples
+Take a look at the package vignette for `sensobol` for better details.
+Briefly, this is a matrix with random variates for each parameter in the
+sensitivity analysis. The samples are uniform between zero and one. You
+will have to transform these variates to parameter values as we’ll see
+in the next section.
+
+**Transform and groom**
+
+For this example, we will assume that all parameters have uniform
+distribution between 1/5 and 5 times the current value of the parameter
 
 ``` r
-set.seed(88771)
-samp <- gen_samples(6000, param(mod), TVCL:TVVP)
-
-head(samp$x1)
+params <- unlist(as.list(param(mod))[c("TVCL", "TVVC", "TVKA", "TVQ", "TVVP")])
+umin <- params / 5
+umax <- params * 5
+umin
 ```
 
-    .       TVCL      TVVC      TVKA      TVQ      TVVP
-    . 1 2837.253 166875.30 11.013982 108.5520 34567.952
-    . 2 3490.800  14354.07 18.822180 547.8690 50545.862
-    . 3 2097.291 181348.34  9.694288 427.9187 24586.856
-    . 4 2341.387  26875.49 11.256036 698.8196  4460.470
-    . 5 5119.695  99479.77  2.140000 666.6529 45071.206
-    . 6 3456.046  19526.79  9.308946 240.5433  3260.133
+    .    TVCL    TVVC    TVKA     TVQ    TVVP 
+    .  10.360 406.000   0.039   1.444 116.600
 
 ``` r
-dim(samp$x1)
+umax
 ```
 
-    . [1] 60000     5
+    .      TVCL      TVVC      TVKA       TVQ      TVVP 
+    .   259.000 10150.000     0.975    36.100  2915.000
 
-### Then, run `sensitivity::sobol2007`
+After setting the minimum and maximum for each parameter, get the value
+of the parameter by looking at the quantiles of the uniform distribution
+(`qunif()`)
 
 ``` r
-x <- sobol2007(batch_run, X1=samp$x1, X2=samp$x2, nboot=100)
+mat <- as_tibble(mat)
+mat2 <- imodify(mat, ~ qunif(.x, umin[[.y]], umax[[.y]]))
+mat2 <- mutate(mat2, ID = row_number())
+head(mat2)
 ```
 
-### Results
+    . # A tibble: 6 × 6
+    .    TVCL  TVVC  TVKA   TVQ  TVVP    ID
+    .   <dbl> <dbl> <dbl> <dbl> <dbl> <int>
+    . 1 135.   5278 0.507 18.8  1516.     1
+    . 2 197.   2842 0.741 10.1  2215.     2
+    . 3  72.5  7714 0.273 27.4   816.     3
+    . 4 104.   4060 0.624  5.78 2565.     4
+    . 5 228.   8932 0.156 23.1  1166      5
+    . 6 166.   1624 0.39  14.4   466.     6
+
+If we wanted each parameter to have log-normal distribution with 30%
+coefficient of variation, we pass our uniform (0,1) variates into
+`qlnorm()` instead
 
 ``` r
-plot(x)
+mat3 <- imodify(mat, ~ qlnorm(.x, log(params[[.y]]), sqrt(0.09)))
+summary(mat3)
 ```
 
-![](img/sobolunnamed-chunk-10-1.png)
+    .       TVCL             TVVC             TVKA              TVQ        
+    .  Min.   : 15.56   Min.   : 609.8   Min.   :0.05858   Min.   : 2.169  
+    .  1st Qu.: 42.31   1st Qu.:1658.2   1st Qu.:0.15928   1st Qu.: 5.897  
+    .  Median : 51.80   Median :2030.0   Median :0.19500   Median : 7.220  
+    .  Mean   : 54.18   Mean   :2123.4   Mean   :0.20397   Mean   : 7.552  
+    .  3rd Qu.: 63.42   3rd Qu.:2485.2   3rd Qu.:0.23873   3rd Qu.: 8.839  
+    .  Max.   :172.44   Max.   :6757.6   Max.   :0.64913   Max.   :24.034  
+    .       TVVP       
+    .  Min.   : 175.1  
+    .  1st Qu.: 476.2  
+    .  Median : 583.0  
+    .  Mean   : 609.8  
+    .  3rd Qu.: 713.8  
+    .  Max.   :1940.7
 
 ``` r
-x
+params
+```
+
+    .     TVCL     TVVC     TVKA      TVQ     TVVP 
+    .   51.800 2030.000    0.195    7.220  583.000
+
+# Run the analysis
+
+We will use the uniform parameters that we generated above.
+
+## Simulation
+
+Now, we have a set of parameters for the model and we can simulate PK
+over 24 hours using `mrgsim_ei()`, passing in an event object and the
+idata set
+
+``` r
+out <- mrgsim_ei(mod, sunev(), mat2, output = "df")
+out <- as.data.table(out)
+```
+
+## Calculate AUC
+
+``` r
+y <- out[, list(auc = auc_partial(time, CP)), by = "ID"][["auc"]]
+```
+
+## Indices
+
+``` r
+ind <- sobol_indices(Y = y, N = N, params = names(params), boot = TRUE, R = 1000, first = "jansen")
+ind.dummy <- sobol_dummy(Y = y, N = N, params = names(params), boot = TRUE, R = 1000)
+```
+
+``` r
+ind
 ```
 
     . 
-    . Call:
-    . sobol2007(model = batch_run, X1 = samp$x1, X2 = samp$x2, nboot = 100)
+    . First-order estimator: jansen | Total-order estimator: jansen 
     . 
-    . Model runs: 420000 
+    . Total number of model runs: 229376 
     . 
-    . First order indices:
-    .           original          bias   std. error     min. c.i.   max. c.i.
-    . TVCL  0.1601012111  2.214509e-03 0.0147719664  0.1316449251 0.189595425
-    . TVVC  0.3320740078  2.876393e-03 0.0251520442  0.2830470899 0.379087675
-    . TVKA  0.0010487694 -2.155859e-05 0.0006259874 -0.0003245785 0.002275195
-    . TVQ   0.0051811252 -2.478164e-04 0.0019619628  0.0013627356 0.009513428
-    . TVVP -0.0004045875 -1.257215e-04 0.0009964991 -0.0021085877 0.001548759
-    . 
-    . Total indices:
-    .        original          bias  std. error    min. c.i.  max. c.i.
-    . TVCL 0.62250758 -0.0034865050 0.017071677  0.592191898 0.66000962
-    . TVVC 0.81936724 -0.0004663454 0.017085775  0.782400067 0.85437849
-    . TVKA 0.01614792 -0.0005697163 0.005517145  0.004259271 0.02703173
-    . TVQ  0.04231475 -0.0017862104 0.047789088 -0.055005315 0.11255199
-    . TVVP 0.02456133  0.0004543576 0.009441657  0.003857844 0.04377317
+    . Sum of first order indices: 0.7398229 
+    .          original          bias    std.error       low.ci     high.ci
+    .  1:  1.375835e-01 -1.306218e-04 0.0144515096  0.109389663 0.166038539
+    .  2:  5.726539e-01 -3.367165e-05 0.0097634033  0.553551637 0.591823475
+    .  3:  3.066132e-02 -2.721122e-04 0.0062102231  0.018761621 0.043105249
+    .  4:  5.038748e-05  6.056256e-05 0.0063385600 -0.012433524 0.012413174
+    .  5: -1.126222e-03 -1.259770e-04 0.0052589996 -0.011307695 0.009307205
+    .  6:  3.856616e-01  2.680087e-04 0.0098460591  0.366095691 0.404691533
+    .  7:  8.242978e-01 -6.051868e-05 0.0132475610  0.798393621 0.850323106
+    .  8:  4.344805e-02  5.422171e-05 0.0012860331  0.040873253 0.045914410
+    .  9:  8.435194e-03  3.055151e-05 0.0004757298  0.007472229 0.009337056
+    . 10:  1.366155e-03 -5.430097e-06 0.0001265142  0.001123622 0.001619549
+    .     sensitivity parameters
+    .  1:          Si       TVCL
+    .  2:          Si       TVVC
+    .  3:          Si       TVKA
+    .  4:          Si        TVQ
+    .  5:          Si       TVVP
+    .  6:          Ti       TVCL
+    .  7:          Ti       TVVC
+    .  8:          Ti       TVKA
+    .  9:          Ti        TVQ
+    . 10:          Ti       TVVP
 
-The HIV model
-=============
+## Visualize
 
-``` r
-mod <- mread_cache("hiv", "models") %>% 
-  update(end = 2000, delta = 1000, maxsteps = 50000)
-
-
-out <- mrgsim(mod, 
-              idata = data_frame(N = c(1000,1200,1400)),
-              end = 10*365, delta = 0.1) 
-
-plot(out, V+L+I+TAR~time/365)
-```
-
-![](img/sobolunnamed-chunk-12-1.png)
+First, plot uncertainty in outcome
 
 ``` r
-bound <- tribble(
-~name , ~lower   , ~upper,
-"s"   , 1.00E-02 , 50,
-"muT" , 1.00E-04 , 0.2,
-"r"   , 1.00E-03 , 50,
-"k1"  , 1.00E-07 , 1.00E-03,
-"k2"  , 1.00E-05 , 1.00E-02,
-"mub" , 1.00E-01 , 0.4,
-"N"   , 1        , 2000,
-"muV" , 1.00E-01 , 10
-)
-
-mksamp <- function(bounds, n) {
-  x <- split(bounds,seq(nrow(bounds)))
-  out <- map(x, .f = function(xx) {
-    runif(n, xx$lower[1], xx$upper[1])  
-  })
-  names(out) <- bounds$name
-  return(as_data_frame(out))
-}
-
-set.seed(10010)
-x1 <- as.data.frame(mksamp(bound,4000*nrow(bound)))
-x2 <- as.data.frame(mksamp(bound,4000*nrow(bound)))
+plot_uncertainty(Y = y, N = N) + scale_x_log10()
 ```
+
+![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/sobolunnamed-chunk-15-1.png)<!-- -->
+
+Now, plot indices
 
 ``` r
-hiv_run <- function(x) {
-  
-  out <- mrgsim_i(x = mod, idata = x)
-  
-  out %>% filter(time==2000) %>% pull(AUC)
-}
+plot(ind, dummy = ind.dummy) + ylim(0,1)
 ```
+
+![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/sobolunnamed-chunk-16-1.png)<!-- -->
+
+Plot outputs versus inputs
 
 ``` r
-x <- sobol2007(hiv_run, X1=x1, X2=x2, nboot=100)
+plot_scatter(N = 2000, data = mat2, Y = y, params = names(mat))
 ```
+
+![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/sobolunnamed-chunk-17-1.png)<!-- -->
 
 ``` r
-tot <- x$T %>% mutate(type = "total order",   parameter = names(x1))
-
-first <- x$S %>% mutate(type = "first order", parameter = names(x1))
-
-sum <- bind_rows(tot,first) %>% mutate(ymax = original + 1.96*`std. error`)
-
-ggplot(data = sum, aes(x = parameter, y = original, fill = type)) + 
-  geom_col(position = position_dodge()) + 
-  geom_errorbar(aes(ymin = original, ymax = ymax), position = position_dodge()) + 
-  scale_fill_brewer(palette = "Set2", name = "") + 
-  theme_bw() + ylab("Sensitivity indices") +
-  theme(legend.position = "top") +
-  scale_y_continuous(limits = c(0,1), breaks = seq(0,1,0.1))
+plot_multiscatter(N = 2000, data = mat2, Y = y, params = names(mat))
 ```
 
-![](img/sobolunnamed-chunk-16-1.png)
-
-Session
-=======
-
-``` r
-devtools::session_info()
-```
-
-    .  setting  value                       
-    .  version  R version 3.4.2 (2017-09-28)
-    .  system   x86_64, darwin15.6.0        
-    .  ui       X11                         
-    .  language (EN)                        
-    .  collate  en_US.UTF-8                 
-    .  tz       America/New_York            
-    .  date     2018-04-09                  
-    . 
-    .  package       * version     date       source                          
-    .  assertthat      0.2.0       2017-04-11 CRAN (R 3.4.0)                  
-    .  backports       1.1.2       2017-12-13 CRAN (R 3.4.2)                  
-    .  base          * 3.4.2       2017-10-04 local                           
-    .  bindr           0.1.1       2018-03-13 CRAN (R 3.4.4)                  
-    .  bindrcpp      * 0.2         2017-06-17 cran (@0.2)                     
-    .  boot            1.3-20      2017-08-06 CRAN (R 3.4.2)                  
-    .  broom           0.4.3       2017-11-20 CRAN (R 3.4.2)                  
-    .  cellranger      1.1.0       2016-07-27 CRAN (R 3.4.0)                  
-    .  cli             1.0.0       2017-11-05 cran (@1.0.0)                   
-    .  codetools       0.2-15      2016-10-05 CRAN (R 3.4.2)                  
-    .  colorspace      1.3-2       2016-12-14 CRAN (R 3.4.0)                  
-    .  compiler        3.4.2       2017-10-04 local                           
-    .  crayon          1.3.4       2017-09-16 CRAN (R 3.4.1)                  
-    .  datasets      * 3.4.2       2017-10-04 local                           
-    .  devtools        1.13.5      2018-02-18 CRAN (R 3.4.2)                  
-    .  digest          0.6.15      2018-01-28 CRAN (R 3.4.2)                  
-    .  dplyr         * 0.7.4       2017-09-28 CRAN (R 3.4.2)                  
-    .  evaluate        0.10.1      2017-06-24 CRAN (R 3.4.0)                  
-    .  forcats       * 0.3.0       2018-02-19 CRAN (R 3.4.2)                  
-    .  foreign         0.8-69      2017-06-22 CRAN (R 3.4.1)                  
-    .  ggplot2       * 2.2.1       2016-12-30 CRAN (R 3.4.0)                  
-    .  glue            1.2.0.9000  2018-01-12 Github (tidyverse/glue@1592ee1) 
-    .  graphics      * 3.4.2       2017-10-04 local                           
-    .  grDevices     * 3.4.2       2017-10-04 local                           
-    .  grid            3.4.2       2017-10-04 local                           
-    .  gtable          0.2.0       2016-02-26 CRAN (R 3.4.0)                  
-    .  haven           1.1.1       2018-01-18 CRAN (R 3.4.2)                  
-    .  hms             0.4.1       2018-01-24 CRAN (R 3.4.2)                  
-    .  htmltools       0.3.6       2017-04-28 CRAN (R 3.4.0)                  
-    .  httr            1.3.1       2017-08-20 CRAN (R 3.4.1)                  
-    .  jsonlite        1.5         2017-06-01 CRAN (R 3.4.0)                  
-    .  knitr           1.20        2018-02-20 CRAN (R 3.4.2)                  
-    .  lattice         0.20-35     2017-03-25 CRAN (R 3.4.2)                  
-    .  lazyeval        0.2.1       2017-10-29 cran (@0.2.1)                   
-    .  lubridate       1.7.2       2018-02-06 CRAN (R 3.4.2)                  
-    .  magrittr        1.5         2014-11-22 CRAN (R 3.4.0)                  
-    .  memoise         1.1.0       2017-04-21 CRAN (R 3.4.0)                  
-    .  methods       * 3.4.2       2017-10-04 local                           
-    .  mnormt          1.5-5       2016-10-15 CRAN (R 3.4.0)                  
-    .  modelr          0.1.1       2017-07-24 CRAN (R 3.4.1)                  
-    .  mrgsolve      * 0.8.10.9014 2018-04-07 local                           
-    .  munsell         0.4.3       2016-02-13 CRAN (R 3.4.0)                  
-    .  nlme            3.1-131.1   2018-02-16 CRAN (R 3.4.2)                  
-    .  parallel        3.4.2       2017-10-04 local                           
-    .  pillar          1.2.1       2018-02-27 CRAN (R 3.4.3)                  
-    .  pkgconfig       2.0.1       2017-03-21 CRAN (R 3.4.0)                  
-    .  PKPDmisc      * 2.1.1       2017-12-17 CRAN (R 3.4.3)                  
-    .  plyr            1.8.4       2016-06-08 CRAN (R 3.4.0)                  
-    .  psych           1.7.8       2017-09-09 CRAN (R 3.4.1)                  
-    .  purrr         * 0.2.4       2017-10-18 CRAN (R 3.4.2)                  
-    .  R6              2.2.2       2017-06-17 CRAN (R 3.4.0)                  
-    .  RColorBrewer    1.1-2       2014-12-07 CRAN (R 3.4.0)                  
-    .  Rcpp            0.12.15     2018-01-20 CRAN (R 3.4.2)                  
-    .  RcppArmadillo   0.8.400.0.0 2018-03-01 CRAN (R 3.4.3)                  
-    .  readr         * 1.1.1       2017-05-16 cran (@1.1.1)                   
-    .  readxl          1.0.0       2017-04-18 CRAN (R 3.4.0)                  
-    .  reshape2        1.4.3       2017-12-11 cran (@1.4.3)                   
-    .  rlang           0.2.0       2018-02-20 CRAN (R 3.4.2)                  
-    .  rmarkdown       1.8         2017-11-17 cran (@1.8)                     
-    .  rprojroot       1.3-2       2018-01-03 CRAN (R 3.4.2)                  
-    .  rstudioapi      0.7         2017-09-07 CRAN (R 3.4.1)                  
-    .  rvest           0.3.2       2016-06-17 CRAN (R 3.4.0)                  
-    .  scales          0.5.0.9000  2018-02-23 Github (hadley/scales@d767915)  
-    .  sensitivity   * 1.15.0      2017-09-23 CRAN (R 3.4.2)                  
-    .  stats         * 3.4.2       2017-10-04 local                           
-    .  stringi         1.1.6       2017-11-17 CRAN (R 3.4.2)                  
-    .  stringr       * 1.3.0       2018-02-19 CRAN (R 3.4.2)                  
-    .  tibble        * 1.4.2       2018-01-22 cran (@1.4.2)                   
-    .  tidyr         * 0.8.0       2018-01-29 CRAN (R 3.4.2)                  
-    .  tidyverse     * 1.2.1       2017-11-14 CRAN (R 3.4.2)                  
-    .  tools           3.4.2       2017-10-04 local                           
-    .  utils         * 3.4.2       2017-10-04 local                           
-    .  withr           2.1.1.9000  2018-02-23 Github (jimhester/withr@5d05571)
-    .  xml2            1.2.0       2018-01-24 CRAN (R 3.4.2)                  
-    .  yaml            2.1.16      2017-12-12 CRAN (R 3.4.2)
+![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/sobolunnamed-chunk-18-1.png)<!-- -->

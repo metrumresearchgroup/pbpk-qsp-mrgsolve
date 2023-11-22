@@ -1,43 +1,83 @@
 ---
-title: Sobol sensitivity analysis
-author: "Metrum Research Group, LLC"
-date: ""
+title: Sobol sensitivity analysis using sensobol
+author: "Metrum Research Group"
 output:
   github_document:
     toc: TRUE
 ---
 
-```{r, echo = FALSE}
-knitr::opts_chunk$set(message = FALSE, warning = FALSE, 
-                      comment = '.', fig.path = "img/sobol")
-knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.path = "cache/sobol/")
+```{r, echo = FALSE, message = FALSE}
+library(here)
+
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  comment = '.', 
+  fig.path = here("docs/img/sobol")
+)
 ```
 
 
 # Reference / About
 Zhang XY, Trame MN, Lesko LJ, Schmidt S. __Sobol Sensitivity Analysis: A Tool to
 Guide the Development and Evaluation of Systems Pharmacology Models__. CPT
-Pharmacometrics Syst Pharmacol. 2015 Feb;4(2):69-79. doi: 10.1002/psp4.6. PubMed 
+Pharmacometrics Syst Pharmacol. 2015 Feb;4(2):69-79. doi: 10.1002/psp4.6. PubMed
 PMID: [27548289](https://www.ncbi.nlm.nih.gov/pubmed/27548289)
 
 This example replicates an analysis presented in the Zhang et al. paper, 
 but here using mrgsolve and other tools available for R.
 
+__NOTE__: This example uses the `sensobol` package to run the analysis. This is 
+my preferred package for global sensitivity analysis. You can 
+see the same analysis run with `sensitivity` here: [sobol.md](sobol.md). 
+
+# Introduction 
+
+This vignette shows you how to to Sobol sensitivity analysis, a form of global
+sensitivity analysis. In this type of analysis, we look at the relationship 
+between variability in input parameters and variability in model outputs when 
+model parameters are all varied together across the plausible parameter space. 
+This is in contrast to local sensitivity analysis, where parameters are 
+perturbed one at a time by small amounts. 
+
+To do Sobol sensitivity analysis, we will need the following
+
+1. A model with some parameters to manipulate 
+1. A (large) set of random parameter values covering a certain section of the 
+plausible (or reasonable) parameter space
+1. An intervention of interest (e.g. a dose)
+1. A model output, summarized as a single value, that depends on the 
+intervention and the value of the manipulated parameters (e.g. AUC for a 
+PK model)
+1. Calculate sensitivity indices, which summarize the relationships between 
+input parameters and model outputs
+1. Visualization or presentation of the indices
+
 
 # Tools
-```{r}
+```{r setup}
 library(mrgsolve)
 library(tidyverse)
-library(PKPDmisc)
-library(sensitivity)
+library(data.table)
+library(sensobol)
+library(mrgmisc)
 ```
 
+Install `mrgmisc` 
+
+```{r, eval = FALSE}
+install.packages(
+  "mrgmisc", 
+  repos = "https://mpn.metworx.com/snapshots/stable/2023-10-19"
+)
+```
 
 
 # The sunitinib PK model
 ```{r}
-mod <- mread_cache("sunit", "models") %>% 
-  update(end = 24, delta = 1) %>% zero_re()
+mod <- mread("sunit", here("docs/models")) %>% 
+  update(end = 24, delta = 0.5, outvars = "CP") %>% 
+  zero_re()
 ```
 
 ```{r}
@@ -45,182 +85,115 @@ see(mod)
 ```
 
 ## Sunitinib dosing 
+
+We are just looking at a single dose for now.
+
 ```{r}
 sunev <- function(amt = 50,...) ev(amt = amt, ...)
 ```
 
-## Generate samples
+# Generate samples
 
-Th function generates uniform samples from a 
-100 fold decrease to 100 fold increase in the 
-nominal parameter value.
-
-The return value is a list with two data frames that
-can be passed into the sobol function.
-
+__Number__: sample size of the base sample matrix
 
 ```{r}
-gen_samples <- function(n, l, which = names(l), 
-                        factor = c(0.01,100)) {
-  
-  vars <- select_vars(names(l), !!(enquo(which)))
-  
-  l <- as.list(l)[vars]
-  
-  l <- map(l, .f = function(x) x*factor)
-
-  n <- length(l)*n*2
-  
-  df <- as.data.frame(l)
-  
-  len <- length(df)
-  
-  X <- matrix(ncol=len, nrow=n)
-  
-  colnames(X) <- names(df)
-  
-  Y <- X
-  
-  for(i in seq(len)){
-    r <- runif(n, df[1,i], df[2,i])
-    X[,i] <- r
-    r <- runif(n, df[1,i], df[2,i])
-    Y[,i] <- r
-  }
-  
-  return(list(x1 = as.data.frame(X), x2 = as.data.frame(Y)))
-}
+N <- 2 ^ 15
 ```
 
-## A bunch of helper functions
+__Generate__
 
-Simulate a batch of data.  The summary is AUC for each parameter set.
+Generate the parameter sets. 
 
 ```{r}
-batch_run <- function(x) {
-  mod %>% 
-    idata_set(x) %>%
-    ev(sunev()) %>%
-    mrgsim(obsonly = TRUE) %>% 
-    group_by(ID) %>% 
-    summarise(AUC = auc_partial(time,CP)) %>% 
-    pull(AUC)
-}
+mat <- sobol_matrices(N = N, params = c("TVCL", "TVVC", "TVKA", "TVQ", "TVVP"))
+head(mat)
+```
+
+Take a look at the package vignette for `sensobol` for better details. Briefly, 
+this is a matrix with random variates for each parameter in the sensitivity
+analysis. The samples are uniform between zero and one. You will have to
+transform these variates to parameter values as we'll see in the next section. 
+
+__Transform and groom__
+
+For this example, we will assume that all parameters have uniform distribution
+between 1/5 and 5 times the current value of the parameter
+
+```{r}
+params <- unlist(as.list(param(mod))[c("TVCL", "TVVC", "TVKA", "TVQ", "TVVP")])
+umin <- params / 5
+umax <- params * 5
+umin
+umax
+```
+
+After setting the minimum and maximum for each parameter, get the value of the 
+parameter by looking at the quantiles of the uniform distribution (`qunif()`)
+
+```{r}
+mat <- as_tibble(mat)
+mat2 <- imodify(mat, ~ qunif(.x, umin[[.y]], umax[[.y]]))
+mat2 <- mutate(mat2, ID = row_number())
+head(mat2)
 ```
 
 
+If we wanted each parameter to have log-normal distribution with 30% coefficient
+of variation, we pass our uniform (0,1) variates into `qlnorm()` instead
 
-## Run the analysis
-
-### First, generate the samples
 ```{r}
-set.seed(88771)
-samp <- gen_samples(6000, param(mod), TVCL:TVVP)
-
-head(samp$x1)
-dim(samp$x1)
+mat3 <- imodify(mat, ~ qlnorm(.x, log(params[[.y]]), sqrt(0.09)))
+summary(mat3)
+params
 ```
 
+# Run the analysis
+We will use the uniform parameters that we generated above.
 
-### Then, run `sensitivity::sobol2007`
+## Simulation
+Now, we have a set of parameters for the model and we can simulate PK over
+24 hours using `mrgsim_ei()`, passing in an event object and the idata set
+
 ```{r}
-x <- sobol2007(batch_run, X1=samp$x1, X2=samp$x2, nboot=100)
+out <- mrgsim_ei(mod, sunev(), mat2, output = "df")
+out <- as.data.table(out)
 ```
 
-### Results
-
+## Calculate AUC
 ```{r}
-plot(x)
+y <- out[, list(auc = auc_partial(time, CP)), by = "ID"][["auc"]]
 ```
 
+## Indices
 ```{r}
-x
-```
-
-# The HIV model
-
-
-```{r}
-mod <- mread_cache("hiv", "models") %>% 
-  update(end = 2000, delta = 1000, maxsteps = 50000)
-
-
-out <- mrgsim(mod, 
-              idata = data_frame(N = c(1000,1200,1400)),
-              end = 10*365, delta = 0.1) 
-
-plot(out, V+L+I+TAR~time/365)
-
-
-```
-
-
-```{r}
-bound <- tribble(
-~name , ~lower   , ~upper,
-"s"	  , 1.00E-02 , 50,
-"muT" ,	1.00E-04 , 0.2,
-"r"	  , 1.00E-03 , 50,
-"k1"  ,	1.00E-07 , 1.00E-03,
-"k2"  , 1.00E-05 , 1.00E-02,
-"mub" , 1.00E-01 , 0.4,
-"N"   , 1        , 2000,
-"muV" ,	1.00E-01 , 10
-)
-
-mksamp <- function(bounds, n) {
-  x <- split(bounds,seq(nrow(bounds)))
-  out <- map(x, .f = function(xx) {
-    runif(n, xx$lower[1], xx$upper[1])  
-  })
-  names(out) <- bounds$name
-  return(as_data_frame(out))
-}
-
-set.seed(10010)
-x1 <- as.data.frame(mksamp(bound,4000*nrow(bound)))
-x2 <- as.data.frame(mksamp(bound,4000*nrow(bound)))
-```
-
-
-
-
-```{r}
-hiv_run <- function(x) {
-  
-  out <- mrgsim_i(x = mod, idata = x)
-  
-  out %>% filter(time==2000) %>% pull(AUC)
-}
+ind <- sobol_indices(Y = y, N = N, params = names(params), boot = TRUE, R = 1000, first = "jansen")
+ind.dummy <- sobol_dummy(Y = y, N = N, params = names(params), boot = TRUE, R = 1000)
 ```
 
 ```{r}
-x <- sobol2007(hiv_run, X1=x1, X2=x2, nboot=100)
+ind
 ```
 
+
+## Visualize
+First, plot uncertainty in outcome
 
 ```{r}
-tot <- x$T %>% mutate(type = "total order",   parameter = names(x1))
-
-first <- x$S %>% mutate(type = "first order", parameter = names(x1))
-
-sum <- bind_rows(tot,first) %>% mutate(ymax = original + 1.96*`std. error`)
-
-ggplot(data = sum, aes(x = parameter, y = original, fill = type)) + 
-  geom_col(position = position_dodge()) + 
-  geom_errorbar(aes(ymin = original, ymax = ymax), position = position_dodge()) + 
-  scale_fill_brewer(palette = "Set2", name = "") + 
-  theme_bw() + ylab("Sensitivity indices") +
-  theme(legend.position = "top") +
-  scale_y_continuous(limits = c(0,1), breaks = seq(0,1,0.1))
-
+plot_uncertainty(Y = y, N = N) + scale_x_log10()
 ```
 
+Now, plot indices
 
-
-# Session
 ```{r}
-devtools::session_info()
+plot(ind, dummy = ind.dummy) + ylim(0,1)
 ```
 
+Plot outputs versus inputs
 
+```{r}
+plot_scatter(N = 2000, data = mat2, Y = y, params = names(mat))
+```
+
+```{r, fig.height = 8}
+plot_multiscatter(N = 2000, data = mat2, Y = y, params = names(mat))
+```
