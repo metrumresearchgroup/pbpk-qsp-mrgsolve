@@ -114,7 +114,7 @@ mod %>%
   plot(ERKi + TUMOR ~ time)
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-5-1.png)<!-- -->
+![](img/mapk-unnamed-chunk-5-1.png)<!-- -->
 
 ## Sensitivity analysis
 
@@ -167,7 +167,7 @@ mod %>%
   sens_plot("TUMOR")
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-7-1.png)<!-- -->
+![](img/mapk-unnamed-chunk-7-1.png)<!-- -->
 
 **Sensitivity analysis on $\delta_{max}$**
 
@@ -186,7 +186,7 @@ mod %>%
   sens_plot("TUMOR")
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-8-1.png)<!-- -->
+![](img/mapk-unnamed-chunk-8-1.png)<!-- -->
 
 # Predicting clinical outcomes for combination therapies
 
@@ -220,7 +220,7 @@ out <- mrgsim(mod, ev = dataG, end = 56, delta = 0.1)
 plot(out, ERKi_C~time)
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-11-1.png)<!-- -->
+![](img/mapk-unnamed-chunk-11-1.png)<!-- -->
 
 - **MEK inhibitor** - cobimetinib (COBI)
 - Compartment 10
@@ -368,7 +368,7 @@ p1 <-
 p1
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/mapk-unnamed-chunk-18-1.png)<!-- -->
+![](img/mapk-unnamed-chunk-18-1.png)<!-- -->
 
 # Target populations more likely to respond
 

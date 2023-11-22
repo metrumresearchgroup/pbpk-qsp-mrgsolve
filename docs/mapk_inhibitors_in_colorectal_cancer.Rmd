@@ -12,8 +12,8 @@ library(here)
 
 knitr::opts_chunk$set(
   comment = '.', 
-  fig.path = here("docs/img/mapk-"), 
-  cache.path = here("docs/cache/mapk/"),
+  fig.path = "img/mapk-", 
+  cache.path = "cache/mapk/",
   message = FALSE, 
   warning = FALSE,
   cache = TRUE, 

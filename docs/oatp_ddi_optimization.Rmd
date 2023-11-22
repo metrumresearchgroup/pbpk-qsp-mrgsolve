@@ -34,12 +34,12 @@ options(ggplot2.discrete.fill = RColorBrewer::brewer.pal(name = "Dark2", n = 8))
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(comment = '.', message = FALSE, warning = FALSE) 
 knitr::opts_chunk$set(
-  fig.path = here("docs/img/oatp_ddi_optimization-")
+  fig.path = "img/oatp_ddi_optimization-"
 ) 
 knitr::opts_chunk$set(
   cache = TRUE, 
   autodep = TRUE, 
-  cache.path = here("docs/cache/optim/")
+  cache.path = "cache/optim/"
 )
 ```
 

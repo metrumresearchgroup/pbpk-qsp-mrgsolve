@@ -38,7 +38,8 @@ set.seed(10101)
 
 theme_set(theme_bw() + theme(legend.position="top"))
 
-scale_colour_discrete <- function(...) scale_color_brewer(palette="Dark2")
+options(ggplot2.discrete.colour = RColorBrewer::brewer.pal(name = "Dark2", n = 8))
+options(ggplot2.discrete.fill = RColorBrewer::brewer.pal(name = "Dark2", n = 8))
 ```
 
 # Reference
@@ -97,7 +98,7 @@ ggplot(data = data, aes(TIME, DV)) +
   scale_y_continuous(trans = "log", limits = c(0.1,300), breaks = logbr()) 
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/oatp_ddi_optimization-unnamed-chunk-4-1.png)<!-- -->
+![](img/oatp_ddi_optimization-unnamed-chunk-4-1.png)<!-- -->
 
 # PBPK model: pitavastatin / CsA DDI
 
@@ -172,7 +173,7 @@ ggplot(sims, aes(TIME, CP, col = type)) +
   ylab("Pitavastatin concentration") + xlab("Time (hour)") 
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/oatp_ddi_optimization-unnamed-chunk-7-1.png)<!-- -->
+![](img/oatp_ddi_optimization-unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
 sims %>% 
@@ -293,7 +294,7 @@ ggplot(data = df_pred, lwd = 0.7) +
   )
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/oatp_ddi_optimization-unnamed-chunk-12-1.png)<!-- -->
+![](img/oatp_ddi_optimization-unnamed-chunk-12-1.png)<!-- -->
 
 ### The final objective function value and estimates
 
@@ -383,7 +384,7 @@ ggplot(data = hxm) +
   facet_wrap(~name, ncol = 2, scales = "free_y")
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/oatp_ddi_optimization-unnamed-chunk-15-1.png)<!-- -->
+![](img/oatp_ddi_optimization-unnamed-chunk-15-1.png)<!-- -->
 
 ## `GenSA`: simulated annealing
 

@@ -1,0 +1,6 @@
+library(rmarkdown)
+render("docs/global_sensitivity_analysis.Rmd")
+render("docs/mapk_inhibitors_in_colorectal_cancer.Rmd")
+render("docs/OpenBoneMin.Rmd")
+render("docs/oatp_ddi_optimization.Rmd")
+render("docs/rifampin_midazolam_ddi.Rmd")

@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
   message = FALSE, 
   warning = FALSE, 
   comment = '.', 
-  fig.path = here("docs/img/sobol")
+  fig.path = "img/sobol"
 )
 ```
 

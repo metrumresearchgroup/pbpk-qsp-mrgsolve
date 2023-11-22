@@ -269,16 +269,16 @@ ind
     . 
     . Sum of first order indices: 0.7398229 
     .          original          bias    std.error       low.ci     high.ci
-    .  1:  1.375835e-01 -1.306218e-04 0.0144515096  0.109389663 0.166038539
-    .  2:  5.726539e-01 -3.367165e-05 0.0097634033  0.553551637 0.591823475
-    .  3:  3.066132e-02 -2.721122e-04 0.0062102231  0.018761621 0.043105249
-    .  4:  5.038748e-05  6.056256e-05 0.0063385600 -0.012433524 0.012413174
-    .  5: -1.126222e-03 -1.259770e-04 0.0052589996 -0.011307695 0.009307205
-    .  6:  3.856616e-01  2.680087e-04 0.0098460591  0.366095691 0.404691533
-    .  7:  8.242978e-01 -6.051868e-05 0.0132475610  0.798393621 0.850323106
-    .  8:  4.344805e-02  5.422171e-05 0.0012860331  0.040873253 0.045914410
-    .  9:  8.435194e-03  3.055151e-05 0.0004757298  0.007472229 0.009337056
-    . 10:  1.366155e-03 -5.430097e-06 0.0001265142  0.001123622 0.001619549
+    .  1:  1.375835e-01 -3.054923e-05 0.0141294577  0.109920800 0.165307257
+    .  2:  5.726539e-01  3.015509e-05 0.0100827253  0.552861951 0.592385508
+    .  3:  3.066132e-02 -4.080888e-05 0.0064834444  0.017994814 0.043409449
+    .  4:  5.038748e-05 -1.789417e-04 0.0066395046 -0.012783861 0.013242519
+    .  5: -1.126222e-03 -2.169643e-04 0.0055808032 -0.011847431 0.010028916
+    .  6:  3.856616e-01 -3.132605e-04 0.0096800250  0.367002381 0.404947382
+    .  7:  8.242978e-01  6.082260e-04 0.0139786654  0.796291938 0.851087299
+    .  8:  4.344805e-02  5.495220e-05 0.0012498384  0.040943463 0.045842740
+    .  9:  8.435194e-03  1.907137e-05 0.0004945538  0.007446815 0.009385430
+    . 10:  1.366155e-03 -1.355019e-06 0.0001229861  0.001126462 0.001608559
     .     sensitivity parameters
     .  1:          Si       TVCL
     .  2:          Si       TVVC
@@ -299,7 +299,7 @@ First, plot uncertainty in outcome
 plot_uncertainty(Y = y, N = N) + scale_x_log10()
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/sobolunnamed-chunk-15-1.png)<!-- -->
+![](img/sobolunnamed-chunk-15-1.png)<!-- -->
 
 Now, plot indices
 
@@ -307,7 +307,7 @@ Now, plot indices
 plot(ind, dummy = ind.dummy) + ylim(0,1)
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/sobolunnamed-chunk-16-1.png)<!-- -->
+![](img/sobolunnamed-chunk-16-1.png)<!-- -->
 
 Plot outputs versus inputs
 
@@ -315,10 +315,10 @@ Plot outputs versus inputs
 plot_scatter(N = 2000, data = mat2, Y = y, params = names(mat))
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/sobolunnamed-chunk-17-1.png)<!-- -->
+![](img/sobolunnamed-chunk-17-1.png)<!-- -->
 
 ``` r
 plot_multiscatter(N = 2000, data = mat2, Y = y, params = names(mat))
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/sobolunnamed-chunk-18-1.png)<!-- -->
+![](img/sobolunnamed-chunk-18-1.png)<!-- -->
