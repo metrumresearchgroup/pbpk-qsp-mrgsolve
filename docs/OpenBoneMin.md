@@ -193,7 +193,7 @@ ggplot(out) +
   geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/OpenBoneMin-unnamed-chunk-11-1.png)<!-- -->
+![](img/OpenBoneMin-unnamed-chunk-11-1.png)<!-- -->
 
 ## Publication figure 4: BSAP vs time
 
@@ -209,7 +209,7 @@ ggplot(out) +
   geom_vline(xintercept = c(24,36), lty = 3) + xscale
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/OpenBoneMin-unnamed-chunk-13-1.png)<!-- -->
+![](img/OpenBoneMin-unnamed-chunk-13-1.png)<!-- -->
 
 ## Publication figure 5: LS BMD vs time
 
@@ -223,7 +223,7 @@ ggplot(out) +
   facet_grid(~ID) + xscale
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/OpenBoneMin-unnamed-chunk-14-1.png)<!-- -->
+![](img/OpenBoneMin-unnamed-chunk-14-1.png)<!-- -->
 
 ## Publication figure 6: TGF-$\beta$ vs time
 
@@ -245,7 +245,7 @@ ggplot(out) +
   scale_y_continuous(breaks = c(0,25,50,75,100,150,225), limits = c(0,225)) 
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/OpenBoneMin-unnamed-chunk-15-1.png)<!-- -->
+![](img/OpenBoneMin-unnamed-chunk-15-1.png)<!-- -->
 
 # Using `OpenBoneMin`
 
@@ -298,7 +298,7 @@ PTH profiles for the 20 and 40 microgram doses
 plot(out, PTHpm ~ time|ID, scales = "same")
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/OpenBoneMin-unnamed-chunk-19-1.png)<!-- -->
+![](img/OpenBoneMin-unnamed-chunk-19-1.png)<!-- -->
 
 Calcium profiles for the 20 and 40 microgram doses
 
@@ -306,7 +306,7 @@ Calcium profiles for the 20 and 40 microgram doses
 plot(out, CaC~time)
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/OpenBoneMin-unnamed-chunk-20-1.png)<!-- -->
+![](img/OpenBoneMin-unnamed-chunk-20-1.png)<!-- -->
 
 ## Denosumab example
 
@@ -326,7 +326,7 @@ Plot the denosumab concentration versus time
 plot(out, DENCP ~.,  scales = list(y = list(log = TRUE)))
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/OpenBoneMin-unnamed-chunk-22-1.png)<!-- -->
+![](img/OpenBoneMin-unnamed-chunk-22-1.png)<!-- -->
 
 Plot the percent change in lumbar spine BMD versus time
 
@@ -334,4 +334,4 @@ Plot the percent change in lumbar spine BMD versus time
 plot(out, BMDlsDENchange ~ .)
 ```
 
-![](/Users/kyleb/git/metrumresearchgroup/pbpk-qsp-mrgsolve/docs/img/OpenBoneMin-unnamed-chunk-23-1.png)<!-- -->
+![](img/OpenBoneMin-unnamed-chunk-23-1.png)<!-- -->

@@ -13,8 +13,8 @@ knitr::opts_chunk$set(
   comment = '.', 
   warning = FALSE, 
   message = FALSE, 
-  fig.path = here("docs/img/OpenBoneMin-"),
-  cache.path = here("docs/cache/bone/"),
+  fig.path = "img/OpenBoneMin-",
+  cache.path = "docs/cache/bone/",
   fig.width = 8, 
   cache = TRUE, autodep = TRUE
 )
