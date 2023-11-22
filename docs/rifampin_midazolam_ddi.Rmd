@@ -6,6 +6,8 @@ output:
    toc: true
 ---
 
+# Setup
+
 ```{r setup, include=FALSE}
 library(here)
 knitr::opts_chunk$set(
@@ -13,20 +15,31 @@ knitr::opts_chunk$set(
   comment = '.', 
   warning = FALSE, 
   message = FALSE, 
-  fig.path = here("docs/img/rifampin_midazolam_ddi-"), 
+  fig.path = "img/rifampin_midazolam_ddi-", 
   cache = TRUE, 
   autodep = TRUE, 
-  cache.path = here("docs/cache/rifampin")
+  cache.path = "cache/rifampin"
 )
 options(ggplot2.discrete.colour = RColorBrewer::brewer.pal(name = "Dark2", n = 8))
 options(ggplot2.discrete.fill = RColorBrewer::brewer.pal(name = "Dark2", n = 8))
 ```
 
+Install `mrgmisc` 
+
+```{r, eval = FALSE}
+install.packages(
+  "mrgmisc", 
+  repos = "https://mpn.metworx.com/snapshots/stable/2023-10-19"
+)
+```
+
+
 ```{r}
 library(tidyverse)
 library(mrgsolve)
-library(pmxTools)
+library(mrgmisc)
 library(here)
+library(knitr)
 theme_set(theme_bw() + theme(legend.position = "top"))
 ```
 
@@ -44,15 +57,18 @@ PMID: 29368402
 
 # Rifampin PBPK
 
-The model has `r length(param(mod))` and `r length(init(mod))` compartments.
 
 ```{r}
-mod <- mread_cache(
+mod <- mread(
   "rifampicin_midazolam", 
   here("docs/models"), 
   delta = 0.1
 )
+```
 
+The model has `r length(param(mod))` and `r length(init(mod))` compartments.
+
+```{r}
 mod
 
 param(mod)
@@ -102,9 +118,8 @@ aucs <-
   out %>% 
   mutate(DAY = 1+floor(time/24)) %>%
   group_by(DAY) %>% 
-  summarise(AUC = auc_partial(time, Ccentral)) %>% 
-  ungroup %>% 
-  mutate(pAUC = 100*AUC/first(AUC)) %>%
+  summarize(auc = auc_partial(time, Ccentral), .groups = "drop") %>% 
+  mutate(pAUC = 100*auc/first(auc)) %>%
   filter(DAY < 10)
 
 ggplot(aucs, aes(factor(DAY), pAUC)) + 
@@ -177,8 +192,8 @@ Midazolam exposure is reduced after rifampicin 75 mg daily x 7d
 ```{r}
 sims %>% 
   group_by(ID) %>% 
-  pmxTools::get_auc(time = "time", dv = "Cmidazolam") %>%
-  mutate(percent_reduction = 100*(1-AUC/first(AUC))) %>%
+  summarise(auc = auc_partial(time, Cmidazolam), .groups = "drop") %>% 
+  mutate(percent_reduction = 100*(1-auc/first(auc))) %>%
   kable(digits = 2)
 ```
 
@@ -213,10 +228,8 @@ summ <-
   out %>%
   mutate(TIME = time, DV = Cmidazolam) %>% 
   group_by(rif,mid) %>%
-  nest() %>%
-  summarise(data = lapply(data, get_auc), .groups = "drop") %>%
-  unnest(cols = data) %>% 
-  mutate(pAUC = 100*(AUC/first(AUC)))
+  summarise(auc = auc_partial(time, Cmidazolam), .groups = "drop") %>% 
+  mutate(pAUC = 100*(auc/first(auc)))
 
 summ
 ```
